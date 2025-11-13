@@ -1,0 +1,68 @@
+{
+	"name": "data-flow-graph-node",
+	"displayName": "data-flow-graph-node",
+	"description": "data-flow-graph-node",
+	"version": "0.0.1",
+	"publisher": "zhaouv",
+	"icon": "img_md/icon.png",
+	"license": "none",
+	"repository": {
+		"url": "https://github.com/zhaouv/data-flow-graph-node.git"
+	},
+	"bugs": {
+		"url": "https://github.com/zhaouv/data-flow-graph-node/issues"
+	},
+	"engines": {
+		"vscode": "^1.47.0"
+	},
+	"categories": [
+		"Programming Languages"
+	],
+	"keywords": [
+		"graph"
+	],
+	"activationEvents": [
+		"onCommand:flowgraph.editCurrentLineAsSVG"
+	],
+	"main": "./src/extension",
+	"contributes": {
+		"commands": [
+			{
+				"command": "flowgraph.editCurrentLineAsSVG",
+				"title": "flow graph",
+				"category": "flow graph"
+			}
+		],
+		"menus": {
+			"editor/context": [
+				{
+					"command": "flowgraph.editCurrentLineAsSVG",
+					"when": "editorFocus",
+					"group": "7_modification"
+				}
+			]
+		},
+		"configuration": {
+			"type": "object",
+			"title": "flow graph",
+			"properties": {
+				"flowgraph.auto-folding": {
+					"type": "boolean",
+					"default": true,
+					"description": "use auto-folding moding, wrap inline svg with region"
+				},
+				"flowgraph.directory": {
+					"type": "string",
+					"default": "",
+					"description": "SVG saving directory"
+				}
+			}
+		}
+	},
+	"scripts": {},
+	"dependencies": {},
+	"devDependencies": {
+		"@types/vscode": "^1.47.0",
+		"@types/node": "^12.12.0"
+	}
+}
