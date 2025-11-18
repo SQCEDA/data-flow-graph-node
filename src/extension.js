@@ -22,9 +22,9 @@ function foldingMod() {
 
 function loadWebviewFiles(root) {
   let main = fs.readFileSync(path.join(root, 'board', 'index.html'), { encoding: 'utf8' })
-  main = main.replace(/<[^\n]*"\.\/assets\/[^\n]*>/g, s => {
-    let m = /"\.\/assets\/(.*?\.)(.*?)"/.exec(s)
-    let content = fs.readFileSync(path.join(root, 'board', 'assets', m[1] + m[2]), { encoding: 'utf8' })
+  main = main.replace(/<[^\n]*"\.\/inject\/[^\n]*>/g, s => {
+    let m = /"\.\/inject\/(.*?\.)(.*?)"/.exec(s)
+    let content = fs.readFileSync(path.join(root, 'board', 'inject', m[1] + m[2]), { encoding: 'utf8' })
     switch (m[2]) {
       case 'css':
         return '<style>\n' + content + '\n</style>'
@@ -67,7 +67,7 @@ function activate(context) {
       }
     );
 
-    currentPanel.webview.html = getWebviewContent(currentPanel.webview.asWebviewUri(vscode.Uri.file(path.join(context.extensionPath, 'board/cdn'))));
+    currentPanel.webview.html = getWebviewContent(currentPanel.webview.asWebviewUri(vscode.Uri.file(path.join(context.extensionPath, 'board/static'))));
     // Handle messages from the webview
     currentPanel.webview.onDidReceiveMessage(
       message => {
@@ -263,5 +263,5 @@ function activate(context) {
 exports.activate = activate;
 
 function getWebviewContent(cdnpath) {
-  return webviewContent.replace('./cdn',cdnpath)
+  return webviewContent.replace('./static',cdnpath)
 }

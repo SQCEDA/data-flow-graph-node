@@ -5,121 +5,24 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Flow Graph</title>
-  <script type="module" crossorigin src="./assets/index.js"></script>
-  <link rel="stylesheet" href="./assets/index.css">
+  <script type="module" crossorigin src="./inject/index.js"></script>
+  <link rel="stylesheet" href="./inject/index.css">
 </head>
 
 <body>
   <div class="toolbar-container">
     <div class="toolbar">
       <div class="toolbar-row">
-        <button class="toolbar-btn primary">edit</button>
-        <button class="toolbar-btn">保存</button>
-        <button class="toolbar-btn">另存为</button>
-        <button class="toolbar-btn">打印</button>
-        <button class="toolbar-btn">预览</button>
-        <button class="toolbar-btn">撤销</button>
-        <button class="toolbar-btn">重做</button>
-        <button class="toolbar-btn">剪切</button>
-        <button class="toolbar-btn">复制</button>
-        <button class="toolbar-btn">粘贴</button>
-        <button class="toolbar-btn">查找</button>
-        <button class="toolbar-btn">替换</button>
-        <button class="toolbar-btn">全选</button>
-        <button class="toolbar-btn">格式刷</button>
       </div>
       <div class="toolbar-row">
-        <button class="toolbar-btn primary">&nbsp;run</button>
-        <button class="toolbar-btn">字号</button>
-        <button class="toolbar-btn">加粗</button>
-        <button class="toolbar-btn">斜体</button>
-        <button class="toolbar-btn">下划线</button>
-        <button class="toolbar-btn">颜色</button>
-        <button class="toolbar-btn">高亮</button>
-        <button class="toolbar-btn">对齐左</button>
-        <button class="toolbar-btn">对齐中</button>
-        <button class="toolbar-btn">对齐右</button>
-        <button class="toolbar-btn">项目符号</button>
-        <button class="toolbar-btn">编号</button>
-        <button class="toolbar-btn">缩进</button>
-        <button class="toolbar-btn">突出显示</button>
-        <button class="toolbar-btn">清除格式</button>
       </div>
     </div>
   </div>
   <div class="content-container">
     <div class="content" style="transform:scale(1);">
-      <div class="card" style="left:200px;top:200px;width:80px;height:80px">
-        <div id="root"></div>
-        <input type="button" value="aaa" onclick="root.innerText=Object.keys(drawAPI)">
-        <p>
-          aaa
-        </p>
-      </div>
-      <div class="card" style="left:200px;top:300px;width:180px;height:180px">
-        <p>
-          bbb
-        </p>
-      </div>
-      <div class="card" style="left:0;top:0;width:180px;height:180px">
-        <p>
-          ccc
-        </p>
-      </div>
-      <div class="card" style="left:2000px;top:3300px;width:180px;height:180px">
-        <p>
-          ddd
-        </p>
-      </div>
     </div>
   </div>
-  <script>
-    // 工具栏鼠标滚轮水平滚动
-    const toolbar = document.querySelector('.toolbar');
-    toolbar.addEventListener('wheel', function (e) {
-      // 阻止默认的垂直滚动
-      e.preventDefault();
-      // 将垂直滚动量转换为水平滚动
-      this.scrollLeft += e.deltaY;
-    });
-    // 添加工具栏按钮点击事件
-    toolbar.addEventListener('click', function (e) {
-      // console.log(e)
-      if (e.target.localName === 'button') {
-        // 创建点击反馈效果
-        e.target.style.transform = 'scale(0.95)';
-        setTimeout(() => {
-          e.target.style.transform = '';
-        }, 150);
-
-        // 在实际应用中，这里可以添加按钮的具体功能
-        console.log(`点击了按钮: ${e.target.textContent}`);
-      }
-    })
-    const content = document.querySelector('.content');
-    content.addEventListener('click', function (e) {
-      console.log(e)
-      let directClick=true
-      let directTarget=e.target
-      let target=e.target
-      while (target.localName!=='div') {
-        directClick=false
-        target=target.parentNode
-      }
-      if (target.className === 'card') {
-        // 创建点击反馈效果
-        if (directClick) {
-          target.style.transform = 'scale(0.95)';
-          setTimeout(() => {
-            target.style.transform = '';
-          }, 150);
-        }
-
-        // 在实际应用中，这里可以添加按钮的具体功能
-        console.log(`点击了卡片: ${target.textContent}`);
-      }
-    })
-  </script>
+  <script type="module" crossorigin src="./static/main.js"></script>
 </body>
 
 </html>
