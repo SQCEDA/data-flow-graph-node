@@ -1,5 +1,5 @@
 
-const drawAPI = {
+const connectAPI = {
   unstable: {
     content: "",
     nonce: () => 'ToBeReplacedByRandomToken',
@@ -24,25 +24,25 @@ const drawAPI = {
     },
     setTextContent(content) {
       console.log(content);
-      drawAPI.unstable.content = content;
+      connectAPI.unstable.content = content;
     },
     setSVGContent(content) {
       globalThis.loadBundleSvg(content)
     },
     setContent(content) {
-      drawAPI.unstable.setTextContent(content)
+      connectAPI.unstable.setTextContent(content)
       let match;
       if (content.startsWith('<svg')) {
-        drawAPI.unstable.setSVGContent(content)
+        connectAPI.unstable.setSVGContent(content)
       }
       else if (match = /!\[.*\]\((.*\.svg)\)/.exec(content)) {
-        drawAPI.unstable.readSVGFileContent(match[1])
+        connectAPI.unstable.readSVGFileContent(match[1])
       }
     },
     custom(content) {
       console.log(content);
       if (content.operate) {
-        content.operate.forEach(drawAPI.unstable.customOperate);
+        content.operate.forEach(connectAPI.unstable.customOperate);
       }
     },
     customOperate(operate) {
@@ -54,7 +54,7 @@ const drawAPI = {
     },
   },
 }
-globalThis.drawAPI = drawAPI
+globalThis.connectAPI = connectAPI
 
 globalThis.addEventListener('message', event => {
 
@@ -63,13 +63,13 @@ globalThis.addEventListener('message', event => {
 
   switch (message.command) {
     case 'currentLine':
-      drawAPI.unstable.setContent(message.content);
+      connectAPI.unstable.setContent(message.content);
       break;
     case 'custom':
-      drawAPI.unstable.custom(message.content);
+      connectAPI.unstable.custom(message.content);
       break;
     case 'readSVGFile':
-      drawAPI.unstable.setSVGContent(message.content);
+      connectAPI.unstable.setSVGContent(message.content);
       break;
   }
 });
@@ -77,7 +77,7 @@ globalThis.addEventListener('message', event => {
 (function () {
   if (typeof acquireVsCodeApi !== 'undefined') {
     const vscode = acquireVsCodeApi();
-    drawAPI.unstable.editCurrentLine = ({ text, control, ...rest }) => {
+    connectAPI.unstable.editCurrentLine = ({ text, control, ...rest }) => {
       vscode.postMessage({
         text,
         control,
@@ -85,7 +85,7 @@ globalThis.addEventListener('message', event => {
         command: 'editCurrentLine',
       })
     }
-    drawAPI.unstable.readSVGFileContent = (file) => {
+    connectAPI.unstable.readSVGFileContent = (file) => {
       vscode.postMessage({
         file,
         command: 'readSVGFile',
