@@ -28,7 +28,7 @@ export const blockPrototype =
             typename: null,
             checkType: 'args',
             linkTo: [
-                { name: 'next', position: 'down', range: 'runfile' }
+                { name: 'next', position: 'down', range: 'runfile', multi: false }
             ],
             linkFrom: [
                 { name: 'previous', position: 'up', range: 'runfile' }

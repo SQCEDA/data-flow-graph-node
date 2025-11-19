@@ -1,4 +1,4 @@
-import { toolbarData, cardData } from './uidata.js'
+import { toolbarData, cardData } from './userdata.js'
 
 
 // 工具栏鼠标滚轮水平滚动
@@ -30,7 +30,11 @@ toolbar.addEventListener('click', function (e) {
     }
 });
 
+let elementScale = 1;
+const lineElement = document.querySelector('.line');
 const contentElement = document.querySelector('.content');
+const contentScaleElement = document.querySelector('.content-scale');
+
 contentElement.addEventListener('click', function (e) {
     // console.log(e)
     let directClick = true
@@ -60,6 +64,7 @@ contentElement.addEventListener('click', function (e) {
 const fg = {
     tools: [[], []],
     nodes: [],
+    link: [],
     currentCard: { index: -1, card: null, node: null, tick: 0 },
     moveSetting: { up: -1, down: 1 },
     addToolbar(tools) {
@@ -75,18 +80,28 @@ const fg = {
             fg.tools[ii].push(...tools[ii])
         });
     },
-    setCardPos(card, pos) {
+    setCardPos(card, _pos) {
         if (card == null) return
-        for (let k in pos) {
+        for (let k in _pos) {
             if (['height', 'width'].includes(k)) {
-                if (pos[k] <= 0) pos[k] = 100
-                card.style[k] = pos[k] - 20 + 'px'
+                if (_pos[k] <= 0) _pos[k] = 100
+                card.style[k] = _pos[k] - 20 + 'px'
             } else if (['left'].includes(k)) {
-                if (pos[k] <= 0) pos[k] = 0
-                card.style[k] = pos[k] + 200 + 'px'
+                if (_pos[k] <= 0) _pos[k] = 0
+                card.style[k] = _pos[k] + 200 + 'px'
             } else { // top
-                if (pos[k] <= 0) pos[k] = 0
-                card.style[k] = pos[k] + 'px'
+                if (_pos[k] <= 0) _pos[k] = 0
+                card.style[k] = _pos[k] + 'px'
+            }
+        }
+    },
+    setLinePos(line, _pos) {
+        if (line == null) return
+        for (let k in _pos) {
+            if (['left'].includes(k)) {
+                line.style[k] = _pos[k] + 200 + 'px'
+            } else { 
+                line.style[k] = _pos[k] + 'px'
             }
         }
     },
@@ -102,7 +117,7 @@ const fg = {
             const text = document.createElement('p');
             text.innerText = item.text + '\n' + item.file;
 
-            fg.setCardPos(card, item.pos)
+            fg.setCardPos(card, item._pos)
 
             card.appendChild(text);
 
@@ -110,6 +125,7 @@ const fg = {
 
         });
         fg.nodes.push(...nodes)
+        fg.buildLines()
         fg.setAsCurrentCard(fg.nodes.length - 1)
     },
     setAsCurrentCard(index) {
@@ -119,30 +135,109 @@ const fg = {
         fg.currentCard.tick = new Date().getTime()
     },
     resetCurrentCardPos() {
-        fg.setCardPos(fg.currentCard.card, fg.currentCard.node.pos)
+        fg.setCardPos(fg.currentCard.card, fg.currentCard.node._pos)
+        fg.buildLines() // 有需求再优化
     },
-    move(direct){
+    move(direct) {
         switch (direct) {
             case 'up':
-                fg.currentCard.node.pos.top-=100;fg.resetCurrentCardPos()
+                fg.currentCard.node._pos.top -= 100; fg.resetCurrentCardPos()
                 break;
             case 'down':
-                fg.currentCard.node.pos.top+=100;fg.resetCurrentCardPos()
+                fg.currentCard.node._pos.top += 100; fg.resetCurrentCardPos()
                 break;
             case 'left':
-                fg.currentCard.node.pos.left-=100;fg.resetCurrentCardPos()
+                fg.currentCard.node._pos.left -= 100; fg.resetCurrentCardPos()
                 break;
             case 'right':
-                fg.currentCard.node.pos.left+=100;fg.resetCurrentCardPos()
+                fg.currentCard.node._pos.left += 100; fg.resetCurrentCardPos()
                 break;
         }
     },
     scale(rate) {
-        let cr = /\((.*)\)/.exec(contentElement.style.transform)[1];
-        contentElement.style.transform = `scale(${rate * (parseFloat(cr) || 1)})`
+        // let cr = /\((.*)\)/.exec(contentElement.style.transform)[1];
+        // contentElement.style.transform = `scale(${rate * (parseFloat(cr) || 1)})`
+        elementScale *= rate
+        contentScaleElement.style.transform = `scale(${elementScale})`
     },
     toggleButton(btn) {
         btn.classList.contains("primary") ? btn.classList.remove("primary") : btn.classList.add("primary")
+    },
+    cleanLines() {
+        fg.link = []
+        lineElement.innerHTML = ''
+    },
+    reDrawLine(lsindex, leindex) {
+        console.log(lsindex, leindex, fg.link[lsindex][leindex])
+        for (const linei of fg.link[lsindex][leindex]) {
+            let {s,e}=linei
+            function getExpandedBoundingRect(rect1, rect2, expand = 100) {
+                const minX = Math.min(rect1.left, rect2.left);
+                const minY = Math.min(rect1.top, rect2.top);
+                const maxX = Math.max(rect1.left + rect1.width, rect2.left + rect2.width);
+                const maxY = Math.max(rect1.top + rect1.height, rect2.top + rect2.height);
+                const boundingWidth = maxX - minX;
+                const boundingHeight = maxY - minY;
+                const expandedRect = {
+                    left: minX - expand,
+                    top: minY - expand,
+                    width: boundingWidth + (expand * 2),
+                    height: boundingHeight + (expand * 2)
+                };
+                return expandedRect;
+            }
+            let pos=getExpandedBoundingRect(s,e)
+            const b1=15
+            const l1=17
+            let pts=[{
+                left:s.left+s.width/2,
+                top:s.top+s.height-b1,
+            },{
+                left:s.left+s.width/2,
+                top:s.top+s.height-b1+l1,
+            },{
+                left:e.left+e.width/2,
+                top:e.top+b1-l1,
+            },{
+                left:e.left+e.width/2,
+                top:e.top+b1,
+            }].map(v=>({left:v.left-pos.left,top:v.top-pos.top}))
+    
+            const line = document.createElement('div');
+            line.className = 'line';
+            line.innerHTML = `<svg width="${pos.width}" height="${pos.height}" xmlns="http://www.w3.org/2000/svg"><path d="M ${pts[0].left} ${pts[0].top} C ${pts[1].left} ${pts[1].top} ${pts[2].left} ${pts[2].top} ${pts[3].left} ${pts[3].top}" stroke="white" fill="transparent"/></svg>`
+            fg.setLinePos(line,pos)
+            if(linei.element)linei.element.remove();
+            linei.element=line
+            lineElement.appendChild(line);
+        }
+    },
+    addLine(lsindex, leindex, lsname, lename) {
+        // console.log(lsindex, leindex, lsname, lename)
+        fg.link[lsindex][leindex].push({
+            s: fg.nodes[lsindex]._pos,
+            sp: 'down',
+            e: fg.nodes[leindex]._pos,
+            ep: 'up',
+            element: null,
+            lsname,
+            lename,
+        })
+        fg.reDrawLine(lsindex, leindex)
+    },
+    buildLines() {
+        fg.cleanLines()
+        fg.link = fg.nodes.map(v => fg.nodes.map(vv => []))
+        fg.nodes.forEach((v, lsindex) => {
+            if (v._linkTo) for (let lsname in v._linkTo) {
+                for (let deltai in v._linkTo[lsname]) {
+                    let lename = v._linkTo[lsname][deltai]
+                    let leindex = lsindex + ~~deltai
+                    fg.addLine(lsindex, leindex, lsname, lename)
+                }
+            }
+        })
+
     },
 };
 
@@ -151,11 +246,11 @@ globalThis.fg = fg;
 fg.addToolbar(toolbarData)
 fg.addContent(cardData)
 
-// Array.from({length:2000}).map(v=>{
+// Array.from({length:100}).map(v=>{
 //     let data = JSON.parse(JSON.stringify(cardData))
 //     fg.addContent(data.map(v=>{
-//         v.pos.left+=100*~~(20*Math.random())
-//         v.pos.top+=100*~~(20*Math.random())
+//         v._pos.left+=100*~~(20*Math.random())
+//         v._pos.top+=100*~~(20*Math.random())
 //         return v
 //     }))
 // })
