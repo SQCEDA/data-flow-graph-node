@@ -28,7 +28,7 @@ export const toolbarData = [
 
 export const cardData = [
     { id: 'dddd', text: 'dddd\na content', file: 'a.py', _pos: { left: 1400, top: 1200, width: 100, height: 100 } },
-    { id: 'asd', text: '中文asd\n中文a content', file: 'a.py', _pos: { left: 0, top: 0, width: 200, height: 200 }, _linkTo: { next: { 1: 'previous', 2: 'previous' , '-1': 'previous' } } },
+    { id: 'asd', text: '中文asd\n中文a content', file: 'a.py', _pos: { left: 0, top: 0, width: 200, height: 200 }, _linkTo: { next: { 1: 'previous', 2: 'previous', '-1': 'previous' } } },
     { id: 'abc', text: 'abc\na content', file: 'a.py', _pos: { left: 200, top: 200, width: 100, height: 100 } },
     { id: 'abcd', text: 'abcd\na content', file: 'a.py', _pos: { left: 400, top: 200, width: 100, height: 100 } },
 ];
