@@ -2,7 +2,7 @@ export const toolbarData = [
     [
         { text: 'edit', class: 'primary' },
 
-        { text: '+', class: 'edit', click: 'fg.scale(1.1)' },
+        { text: '+', class: 'edit', click: 'fg.scale(1.1)', title: '视图放大' },
 
         { text: 'r', class: 'edit', click: 'fg.scale()', title: '恢复初始视图大小' },
         { text: '^', class: 'edit', click: 'fg.move("up")' },
@@ -25,7 +25,7 @@ export const toolbarData = [
     [
         { text: 'run ', class: '' },
 
-        { text: '-', class: 'edit', click: 'fg.scale(1/1.1)' },
+        { text: '-', class: 'edit', click: 'fg.scale(1/1.1)', title: '视图缩小' },
 
         { text: '<', class: 'edit', click: 'fg.move("left")' },
         { text: 'v', class: 'edit', click: 'fg.move("down")' },
