@@ -1,6 +1,6 @@
 export const toolbarData = [
     [
-        { text: 'edit', class: 'primary' },
+        { text: 'edit', class: 'primary', click: 'fg.toggleButton(btn);fg.toggleButton(btn.parentNode.parentNode.children[1-tindex].children[index]);fg.toggleMode();' },
 
         { text: '+', class: 'edit', click: 'fg.scale(1.1)', title: '视图放大' },
 
@@ -17,6 +17,8 @@ export const toolbarData = [
 
         { text: '?启用', class: 'run', click: 'console.log("尚未实现")' },
 
+        { text: '?重置快照链', class: 'run', click: 'console.log("尚未实现")' },
+
 
 
         { text: '测试1-打印nodes', class: 'edit', click: 'console.log("\\n\\n\\n\\n"+fg.simpleJson(fg.nodes)+"\\n\\n\\n\\n")' },
@@ -25,7 +27,7 @@ export const toolbarData = [
 
     ],
     [
-        { text: 'run ', class: '' },
+        { text: 'run ', class: '', click: 'fg.toggleButton(btn);fg.toggleButton(btn.parentNode.parentNode.children[1-tindex].children[index]);fg.toggleMode();' },
 
         { text: '-', class: 'edit', click: 'fg.scale(1/1.1)', title: '视图缩小' },
 
@@ -41,17 +43,20 @@ export const toolbarData = [
         { text: '删除', class: 'edit', click: 'fg.removeNode(fg.currentCard.index)' },
 
         { text: '?禁用', class: 'run', click: 'console.log("尚未实现")' },
+        { text: '?运行链', class: 'run', click: 'console.log("尚未实现")' },
+        { text: '?运行', class: 'run', click: 'console.log("尚未实现")' },
+        { text: '?结果/文件', class: 'run primary', click: 'fg.toggleButton(btn);fg.mode.showfile*=-1' },
     ]
 ];
 
 export const cardData = [
-    { text: "a", file: "a.py", _pos: { left: 0, top: 0, width: 100, height: 100 }, _linkTo: { next: { "1": "previous" } } },
-    { text: "b", file: "b.py", _pos: { left: 200, top: 0, width: 100, height: 100 }, _linkTo: { next: { "1": "previous" } } },
-    { text: "c", file: "c.py", _pos: { left: 200, top: 100, width: 100, height: 100 }, _linkTo: { next: { "1": "previous" } } },
-    { text: "d", file: "d.py", snapshot: true, _pos: { left: 0, top: 100, width: 100, height: 100 }, _linkTo: { next: { "1": "previous", "2": "previous" } } },
-    { text: "e1", file: "e1.py", _pos: { left: 0, top: 200, width: 100, height: 100 }, _linkTo: { next: { "2": "previous" } } },
-    { text: "e2", file: "e2.py", _pos: { left: 300, top: 200, width: 100, height: 100 }, _linkTo: { next: { "1": "previous" } } },
-    { text: "f", file: "f.py", _pos: { left: 100, top: 200, width: 200, height: 100 }, _linkTo: { next: { "1": "previous" } } },
-    { text: "g", file: "g.py", _pos: { left: 100, top: 300, width: 200, height: 100 }, _linkTo: { next: { "1": "previous" } } },
-    { text: "h", file: "h.py", _pos: { left: 300, top: 300, width: 100, height: 100 } }
+    { text: "a", filename: "a.py", _pos: { left: 0, top: 0, width: 100, height: 100 }, _linkTo: { next: { "1": "previous" } } },
+    { text: "b", filename: "b.py", _pos: { left: 200, top: 0, width: 100, height: 100 }, _linkTo: { next: { "1": "previous" } } },
+    { text: "c", filename: "c.py", _pos: { left: 200, top: 100, width: 100, height: 100 }, _linkTo: { next: { "1": "previous" } } },
+    { text: "d", filename: "d.py", snapshot: true, _pos: { left: 0, top: 100, width: 100, height: 100 }, _linkTo: { next: { "1": "previous", "2": "previous" } } },
+    { text: "e1", filename: "e1.py", _pos: { left: 0, top: 200, width: 100, height: 100 }, _linkTo: { next: { "2": "previous" } } },
+    { text: "e2", filename: "e2.py", _pos: { left: 300, top: 200, width: 100, height: 100 }, _linkTo: { next: { "1": "previous" } } },
+    { text: "f", filename: "f.py", _pos: { left: 100, top: 200, width: 200, height: 100 }, _linkTo: { next: { "1": "previous" } } },
+    { text: "g", filename: "g.py", _pos: { left: 100, top: 300, width: 200, height: 100 }, _linkTo: { next: { "1": "previous" } } },
+    { text: "h", filename: "h.py", _pos: { left: 300, top: 300, width: 100, height: 100 } }
 ]

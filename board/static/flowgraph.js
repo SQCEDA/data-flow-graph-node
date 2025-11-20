@@ -1,4 +1,6 @@
 
+import { connectAPI } from "./connectAPI.js";
+
 // 工具栏鼠标滚轮水平滚动
 const toolbar = document.querySelector('.toolbar');
 toolbar.addEventListener('wheel', function (e) {
@@ -23,8 +25,8 @@ toolbar.addEventListener('click', function (e) {
 
         let index = Array.prototype.indexOf.call(target.parentNode.children, target)
         let tindex = Array.prototype.indexOf.call(target.parentNode.parentNode.children, target.parentNode)
-        let func = new Function('btn', 'tindex', 'index', fg.tools[tindex][index].click)
-        func(target, tindex, index)
+        let func = new Function('fg', 'btn', 'tindex', 'index', fg.tools[tindex][index].click)
+        func(fg, target, tindex, index)
     }
 });
 
@@ -43,9 +45,7 @@ contentElement.addEventListener('click', function (e) {
         target = target.parentNode
     }
     if (target.classList.contains('card')) {
-        let index = Array.prototype.indexOf.call(target.parentNode.children, target)
-        fg.setAsCurrentCard(index)
-
+        
         // 创建点击反馈效果
         if (1) {
             target.style.transform = 'scale(0.95)';
@@ -53,9 +53,12 @@ contentElement.addEventListener('click', function (e) {
                 target.style.transform = '';
             }, 150);
         }
-
+        
         // 在实际应用中，这里可以添加按钮的具体功能
         console.log(`点击了卡片: ${target.textContent}`);
+        let index = Array.prototype.indexOf.call(target.parentNode.children, target)
+        fg.setAsCurrentCard(index)
+        fg.clickCard(index)
     }
 });
 
@@ -67,6 +70,7 @@ export const fg = {
     currentCard: { index: -1, card: null, node: null, tick: 0 },
     lastCard: { index: -1, card: null, node: null, tick: 0 },
     moveSetting: { down: 1 },
+    mode: {edit:1,run:-1,showfile:1},
     addToolbar(tools) {
         [0, 1].forEach(ii => {
             tools[ii].forEach((bi, index) => {
@@ -115,7 +119,7 @@ export const fg = {
             // card.setAttribute('index', index+fg.nodes.length)
 
             const text = document.createElement('p');
-            text.innerText = item.text + '\n' + item.file + (item.snapshot ? '\nsnap' : '');
+            text.innerText = item.text + '\n' + item.filename + (item.snapshot ? '\nsnap' : '');
 
             fg.setCardPos(card, item._pos)
 
@@ -363,6 +367,25 @@ export const fg = {
         }
         // console.log(ret)
         return ret
+    },
+    toggleMode() {
+        fg.mode.run*=-1
+        fg.mode.edit*=-1
+    },
+    clickCard(index) {
+        // check if send to double click
+        let node=fg.nodes[index]
+        if(fg.mode.edit>0){
+            return
+        }
+        if(fg.mode.run>0){
+            if (fg.mode.showfile>0) {
+                connectAPI.unstable.showFile(Array.isArray(node.filename)?node.filename[0]:node.filename)
+            } else{
+                connectAPI.unstable.showResult(index,node)
+            }
+            return
+        }
     },
 };
 

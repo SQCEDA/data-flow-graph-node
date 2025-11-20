@@ -9,7 +9,7 @@ globalThis.fg = fg;
 fg.addToolbar(toolbarData)
 fg.addContent(cardData)
 
-document.querySelector("body > div.content-container").scrollLeft=200
+document.querySelector(".content-container").scrollLeft=200
 
 
 // Array.from({length:100}).map(v=>{
