@@ -49,6 +49,25 @@ export const toolbarData = [
     ]
 ];
 
+export const config = {
+    Runtype: {
+        "1": {
+            type: 'node-post',
+            url: 'http://127.0.0.1:12082/exec',
+            messege: 'return Json.stringify({code:content,filename:filename})',
+            show: 'Json.parse(ret);return ret.output+"\\n"+ret.error'
+        },
+        "": {
+            type: 'terminal',
+            messege: 'echo filename'
+        },
+        "2": {
+            type: 'concat',
+            filename: 'workspace.py'
+        },
+    }
+}
+
 export const cardData = [
     { text: "a", filename: "a.py", _pos: { left: 0, top: 0, width: 100, height: 100 }, _linkTo: { next: { "1": "previous" } } },
     { text: "b", filename: "b.py", _pos: { left: 200, top: 0, width: 100, height: 100 }, _linkTo: { next: { "1": "previous" } } },

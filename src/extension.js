@@ -54,6 +54,8 @@ function activate(context) {
   let currentText = "";
   let updateHandle = undefined;
 
+  let showTextPanel = null
+
   function createNewPanel() {
     // Create and show panel
     currentPanel = vscode.window.createWebviewPanel(
@@ -73,6 +75,38 @@ function activate(context) {
       message => {
 
         switch (message.command) {
+          case 'showFile':
+            vscode.window.showTextDocument(
+              vscode.Uri.file(vscode.workspace.rootPath+'/'+message.filename),
+              {
+                viewColumn:vscode.ViewColumn.One,
+                preserveFocus:true
+              }
+            )
+            return;
+          case 'showText':
+            if (showTextPanel==null || showTextPanel.isClosed) {
+              vscode.workspace.openTextDocument({
+                content: message.text,
+                encoding: 'utf8', language: 'log'
+              }).then(document => {
+                showTextPanel=document
+                vscode.window.showTextDocument(
+                  showTextPanel,
+                  vscode.ViewColumn.One,
+                  true
+                )
+              })
+            } else {
+              vscode.window.showTextDocument(
+                showTextPanel,
+                vscode.ViewColumn.One,
+                true
+              ).then((editor) => editor.edit(edit => {
+                edit.replace(new vscode.Range(0, 0, 9999, 0), message.text);
+              }))
+            }
+            return;
           case 'requestCurrentLine':
             pushCurrentLine()
             return;

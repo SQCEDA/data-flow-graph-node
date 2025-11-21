@@ -71,6 +71,14 @@ export const fg = {
     lastCard: { index: -1, card: null, node: null, tick: 0 },
     moveSetting: { down: 1 },
     mode: {edit:1,run:-1,showfile:1},
+    getRandomString() {
+        let text = '';
+        const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        for (let i = 0; i < 32; i++) {
+            text += possible.charAt(Math.floor(Math.random() * possible.length));
+        }
+        return text;
+    },
     addToolbar(tools) {
         [0, 1].forEach(ii => {
             tools[ii].forEach((bi, index) => {
@@ -380,11 +388,17 @@ export const fg = {
         }
         if(fg.mode.run>0){
             if (fg.mode.showfile>0) {
-                connectAPI.unstable.showFile(Array.isArray(node.filename)?node.filename[0]:node.filename)
+                connectAPI.showFile(Array.isArray(node.filename)?node.filename[0]:node.filename)
             } else{
-                connectAPI.unstable.showResult(index,node)
+                connectAPI.showText(Array.isArray(node.filename)?node.filename[0]:node.filename)
             }
             return
+        }
+    },
+    runNodes(indexes) {
+        for (const index of indexes) {            
+            let node=fg.nodes[index]
+            let rid=fg.getRandomString()
         }
     },
 };

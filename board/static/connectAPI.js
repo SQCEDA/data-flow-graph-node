@@ -1,67 +1,72 @@
 
 export const connectAPI = {
-  send(x){
+  send(x) {
     console.log(x)
   },
-  unstable: {
-    content: "",
-    nonce: () => globalThis.vscodeNonce(),
-    /**
-     * 
-     * @param {String} text text
-     * @param {Number} control moving number of the cursor
-     */
-    editCurrentLine({ text, control, ...rest }) {
-      connectAPI.send({
-        text,
-        control,
-        file: !!rest.file,
-        command: 'editCurrentLine',
-      });
-    },
-    readSVGFileContent(file) {
-      connectAPI.send({
-        file,
-        command: 'readSVGFile',
-      })
-    },
-    setTextContent(content) {
-      console.log(content);
-      connectAPI.unstable.content = content;
-    },
-    setSVGContent(content) {
-      globalThis.loadBundleSvg(content)
-    },
-    setContent(content) {
-      connectAPI.unstable.setTextContent(content)
-      let match;
-      if (content.startsWith('<svg')) {
-        connectAPI.unstable.setSVGContent(content)
-      }
-      else if (match = /!\[.*\]\((.*\.svg)\)/.exec(content)) {
-        connectAPI.unstable.readSVGFileContent(match[1])
-      }
-    },
-    custom(content) {
-      console.log(content);
-      if (content.operate) {
-        content.operate.forEach(connectAPI.unstable.customOperate);
-      }
-    },
-    customOperate(operate) {
-      console.log(operate);
-      if (operate.type === 'script') {
-        let func = new Function(operate.function)
-        func()
-      }
-    },
-    showFile(filename){
-      console.log('showFile(filename)',filename)
-    },
-    showResult(index,node){
-      console.log('showResult(index,node)',index,node)
-    },
+  content: "",
+  nonce: () => globalThis.vscodeNonce(),
+  /**
+   * 
+   * @param {String} text text
+   * @param {Number} control moving number of the cursor
+   */
+  editCurrentLine({ text, control, ...rest }) {
+    connectAPI.send({
+      text,
+      control,
+      file: !!rest.file,
+      command: 'editCurrentLine',
+    });
   },
+  readSVGFileContent(file) {
+    connectAPI.send({
+      file,
+      command: 'readSVGFile',
+    })
+  },
+  setTextContent(content) {
+    console.log(content);
+    connectAPI.content = content;
+  },
+  setSVGContent(content) {
+    globalThis.loadBundleSvg(content)
+  },
+  setContent(content) {
+    connectAPI.setTextContent(content)
+    let match;
+    if (content.startsWith('<svg')) {
+      connectAPI.setSVGContent(content)
+    }
+    else if (match = /!\[.*\]\((.*\.svg)\)/.exec(content)) {
+      connectAPI.readSVGFileContent(match[1])
+    }
+  },
+  custom(content) {
+    console.log(content);
+    if (content.operate) {
+      content.operate.forEach(connectAPI.customOperate);
+    }
+  },
+  customOperate(operate) {
+    console.log(operate);
+    if (operate.type === 'script') {
+      let func = new Function(operate.function)
+      func()
+    }
+  },
+  showFile(filename) {
+    connectAPI.send({
+      filename,
+      command: 'showFile',
+    })
+  },
+  showText(text) {
+    connectAPI.send({
+      text,
+      command: 'showText',
+    })
+  },
+
 }
 globalThis.connectAPI = connectAPI
 
@@ -72,13 +77,13 @@ globalThis.addEventListener('message', event => {
 
   switch (message.command) {
     case 'currentLine':
-      connectAPI.unstable.setContent(message.content);
+      connectAPI.setContent(message.content);
       break;
     case 'custom':
-      connectAPI.unstable.custom(message.content);
+      connectAPI.custom(message.content);
       break;
     case 'readSVGFile':
-      connectAPI.unstable.setSVGContent(message.content);
+      connectAPI.setSVGContent(message.content);
       break;
   }
 });
@@ -94,6 +99,8 @@ globalThis.addEventListener('message', event => {
     globalThis.editor_mounted = () => {
       vscode.postMessage({ command: 'requestCurrentLine' })
     }
+  } else {
+    // local test
   }
 }());
 
