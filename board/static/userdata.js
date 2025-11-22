@@ -1,4 +1,4 @@
-export const toolbarData = [
+const toolbarData = [
     [
         { text: 'edit', class: 'primary', click: 'fg.toggleButton(btn);fg.toggleButton(btn.parentNode.parentNode.children[1-tindex].children[index]);fg.toggleMode();' },
 
@@ -50,6 +50,7 @@ export const toolbarData = [
 ];
 
 export const config = {
+    toolbar: toolbarData,
     Runtype: {
         "1": {
             type: 'node-post',

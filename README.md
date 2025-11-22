@@ -34,7 +34,16 @@ _pos记录位置
 
 插件内部需要维护一个state 存运行结果/状态 以及界面状态等等
 
-? 再创建一个运行面板(webview/空白文本给个标题)
+运行流程:
+打开文件xxx.flowgraph.json, 右键菜单或者f1执行命令
+插件加载xxx.flowgraph.json, 其中包含xxx.flowgraph.config.json的路径, 也打开加载
+flowgraph->carddata
+flowgraph.config->config
+拉起webview/webview重载
+webview:requestCustom 拿到config
+webview:requestNodes 拿到carddata
+webview:requestState 此时暂时时空白/加载运行数据
+
 
 > 编辑先做到这个程度, 做运行有关的东西
 

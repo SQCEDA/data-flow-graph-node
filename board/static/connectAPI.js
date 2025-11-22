@@ -8,6 +8,7 @@ export const connectAPI = {
     custom:'connectAPI.custom(message.content)',
     readSVGFile:'connectAPI.setSVGContent(message.content)',
   },
+  isDebug: true,
   content: "",
   nonce: () => globalThis.vscodeNonce(),
   /**
@@ -109,6 +110,7 @@ globalThis.addEventListener('message', event => {
     globalThis.editor_mounted = () => {
       vscode.postMessage({ command: 'requestCurrentLine' })
     }
+    connectAPI.isDebug=false
   } else {
     // local test
   }

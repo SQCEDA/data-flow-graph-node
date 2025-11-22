@@ -421,6 +421,7 @@ export const fg = {
     },
     setConfig(config) {
         Object.assign(fg.config, config)
+        fg.addToolbar(config.toolbar)
     },
 };
 

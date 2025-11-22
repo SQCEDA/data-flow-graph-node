@@ -1,4 +1,3 @@
-import { toolbarData } from './userdata.js'
 import { config } from './userdata.js'
 import { cardData } from './userdata.js'
 // import { cardData } from "./testdata.js";
@@ -6,7 +5,6 @@ import { cardData } from './userdata.js'
 import { fg } from './flowgraph.js'
 
 fg.setConfig(config)
-fg.addToolbar(toolbarData)
 fg.addContent(cardData)
 
 fg.requestState()
