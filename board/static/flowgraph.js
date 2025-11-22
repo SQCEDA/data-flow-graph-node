@@ -149,6 +149,12 @@ export const fg = {
         fg.buildLines()
         fg.setAsCurrentCard(fg.nodes.length - 1)
         fg.setAsCurrentCard(fg.nodes.length - 1)
+        fg.firstAddContent()
+    },
+    firstAddContent(){
+        if(globalThis.__firstAddContent_has_run)return
+        globalThis.__firstAddContent_has_run=1
+        document.querySelector(".content-container").scrollLeft = 200
     },
     setAsCurrentCard(index) {
         Object.assign(fg.lastCard, fg.currentCard)
@@ -404,16 +410,17 @@ export const fg = {
             return
         }
     },
-    saveState(){
-        connectAPI.send({ command: 'saveState', state: fg.state })
-    },
-    updateFromState(){
-        // update from fg.state
-        document.querySelector(".content-container").scrollLeft = 200
-    },
-    requestState(){
-        connectAPI.send({ command: 'requestState' })
-    },
+    // saveState(){
+    //     connectAPI.send({ command: 'saveState', state: fg.state })
+    // },
+    // updateFromState(state){
+    //     // update from fg.state
+    //     fg.state=state
+    //     document.querySelector(".content-container").scrollLeft = 200
+    // },
+    // requestState(){
+    //     connectAPI.send({ command: 'requestState' })
+    // },
     requestConfig(){
         connectAPI.send({ command: 'requestConfig' })
     },
@@ -435,8 +442,9 @@ export const fg = {
 globalThis.fg = fg;
 
 connectAPI.recieve.config='fg.setConfig(message.content)'
-connectAPI.recieve.nodes='fg.addContent(message.content);fg.requestState()'
-connectAPI.recieve.state='fg.state=message.content;fg.updateFromState()'
+connectAPI.recieve.nodes='fg.addContent(message.content);'
+// connectAPI.recieve.nodes='fg.addContent(message.content);fg.requestState()'
+// connectAPI.recieve.state='fg.updateFromState(message.content)'
 
 
 

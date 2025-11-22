@@ -44,6 +44,7 @@ webview:requestConfig 拿到config
 webview:requestNodes 拿到carddata
 webview:requestState 此时暂时时空白/加载运行数据
 
+用retainContextWhenHidden: true来避免离屏幕销毁了, 多占点内存省事
 
 > 编辑先做到这个程度, 做运行有关的东西
 

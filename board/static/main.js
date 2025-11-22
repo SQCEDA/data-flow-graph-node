@@ -7,7 +7,6 @@ import { fg } from './flowgraph.js'
 if (connectAPI.isDebug) {
     fg.setConfig(config)
     fg.addContent(cardData)
-    document.querySelector(".content-container").scrollLeft = 200
 }
 
 fg.requestConfig()

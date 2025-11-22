@@ -50,7 +50,8 @@ function activate(context) {
 
   /** @type {vscode.TextDocument | undefined} */
   let showTextPanel = undefined
-  let webviewState = {}
+  // let webviewState = {}
+  let fgobj = undefined
   let config = undefined
   let nodes = undefined
 
@@ -60,23 +61,23 @@ function activate(context) {
       vscode.window.showErrorMessage('No active .flowgraph.json file');
       return '';
     }
-    currentEditor=activeTextEditor;
+    currentEditor = activeTextEditor;
     try {
-      let fgobj=JSON.parse(activeTextEditor.document.getText())
-      nodes=fgobj.nodes
-      let configfile=path.join(path.dirname(activeTextEditor.document.fileName),fgobj.config)
-      config=JSON.parse(fs.readFileSync(configfile,{encoding:'utf8'}))
+      fgobj = JSON.parse(activeTextEditor.document.getText())
+      nodes = fgobj.nodes
+      let configPath = path.join(path.dirname(activeTextEditor.document.fileName), fgobj.config)
+      config = JSON.parse(fs.readFileSync(configPath, { encoding: 'utf8' }))
       // vscode.window.showInformationMessage('config:'+JSON.stringify(config))
     } catch (error) {
-      vscode.window.showErrorMessage(''+error);
+      vscode.window.showErrorMessage('' + error);
     }
-    
+
     // vscode.window.showInformationMessage(activeTextEditor.document.fileName)
     return activeTextEditor.document.fileName
   }
 
   function createNewPanel() {
-    if(!loadFlowGraphAndConfig())return;
+    if (!loadFlowGraphAndConfig()) return;
     // Create and show panel
     currentPanel = vscode.window.createWebviewPanel(
       'flowgraph',
@@ -85,6 +86,7 @@ function activate(context) {
       {
         // Enable scripts in the webview
         enableScripts: true,
+        retainContextWhenHidden: true,
         localResourceRoots: [vscode.Uri.file(path.join(context.extensionPath, 'board'))]
       }
     );
@@ -96,26 +98,26 @@ function activate(context) {
 
         switch (message.command) {
           case 'showFile':
-            let filename=path.join(path.dirname(currentEditor.document.fileName),message.filename)
+            let filename = path.join(path.dirname(currentEditor.document.fileName), message.filename)
             // vscode.workspace.rootPath+'/'+message.filename
-            if(!fs.existsSync(filename)){
+            if (!fs.existsSync(filename)) {
               fs.writeFileSync(filename, '', { encoding: 'utf8' });
             }
             vscode.window.showTextDocument(
               vscode.Uri.file(filename),
               {
-                viewColumn:vscode.ViewColumn.One,
-                preserveFocus:true
+                viewColumn: vscode.ViewColumn.One,
+                preserveFocus: true
               }
             )
             return;
           case 'showText':
-            if (showTextPanel==undefined || showTextPanel.isClosed) {
+            if (showTextPanel == undefined || showTextPanel.isClosed) {
               vscode.workspace.openTextDocument({
                 content: message.text,
                 encoding: 'utf8', language: 'log'
               }).then(document => {
-                showTextPanel=document
+                showTextPanel = document
                 vscode.window.showTextDocument(
                   showTextPanel,
                   vscode.ViewColumn.One,
@@ -132,18 +134,18 @@ function activate(context) {
               }))
             }
             return;
-          case 'requestState':
-            currentPanel.webview.postMessage({ command: 'state', content: webviewState });
-            return;
+          // case 'requestState':
+          //   currentPanel.webview.postMessage({ command: 'state', content: webviewState });
+          //   return;
           case 'requestConfig':
             currentPanel.webview.postMessage({ command: 'config', content: config });
             return;
           case 'requestNodes':
             currentPanel.webview.postMessage({ command: 'nodes', content: nodes });
             return;
-          case 'saveState':
-            webviewState=message.state;
-            return;
+          // case 'saveState':
+          //   webviewState = message.state;
+          //   return;
           case 'requestCustom':
             currentPanel.webview.postMessage({ command: 'custom', content: { operate: [] } });
             return;
@@ -177,5 +179,5 @@ function activate(context) {
 exports.activate = activate;
 
 function getWebviewContent(cdnpath) {
-  return webviewContent.replace('./static',cdnpath)
+  return webviewContent.replace('./static', cdnpath)
 }
