@@ -407,11 +407,18 @@ export const fg = {
     saveState(){
         connectAPI.send({ command: 'saveState', state: fg.state })
     },
+    updateFromState(){
+        // update from fg.state
+        document.querySelector(".content-container").scrollLeft = 200
+    },
     requestState(){
         connectAPI.send({ command: 'requestState' })
     },
-    updateFromState(){
-        // update from fg.state
+    requestConfig(){
+        connectAPI.send({ command: 'requestConfig' })
+    },
+    requestNodes(){
+        connectAPI.send({ command: 'requestNodes' })
     },
     runNodes(indexes) {
         for (const index of indexes) {
@@ -427,6 +434,8 @@ export const fg = {
 
 globalThis.fg = fg;
 
+connectAPI.recieve.config='fg.setConfig(message.content)'
+connectAPI.recieve.nodes='fg.addContent(message.content);fg.requestState()'
 connectAPI.recieve.state='fg.state=message.content;fg.updateFromState()'
 
 

@@ -42,17 +42,17 @@ const webviewContent = loadWebviewFiles(path.join(__dirname, '..'));
 /** @param {vscode.ExtensionContext} context */
 function activate(context) {
 
-  // values for webview status
   /** @type {vscode.WebviewPanel | undefined} */
   let currentPanel = undefined;
 
-  // values for editing status
   /** @type {vscode.TextEditor | undefined} */
   let currentEditor = undefined;
 
   /** @type {vscode.TextDocument | undefined} */
   let showTextPanel = undefined
   let webviewState = {}
+  let config = undefined
+  let nodes = undefined
 
   function loadFlowGraphAndConfig() {
     let activeTextEditor = vscode.window.activeTextEditor;
@@ -63,9 +63,9 @@ function activate(context) {
     currentEditor=activeTextEditor;
     try {
       let fgobj=JSON.parse(activeTextEditor.document.getText())
-      let cardData=fgobj.nodes
+      nodes=fgobj.nodes
       let configfile=path.join(path.dirname(activeTextEditor.document.fileName),fgobj.config)
-      let config=JSON.parse(fs.readFileSync(configfile,{encoding:'utf8'}))
+      config=JSON.parse(fs.readFileSync(configfile,{encoding:'utf8'}))
       // vscode.window.showInformationMessage('config:'+JSON.stringify(config))
     } catch (error) {
       vscode.window.showErrorMessage(''+error);
@@ -135,18 +135,19 @@ function activate(context) {
           case 'requestState':
             currentPanel.webview.postMessage({ command: 'state', content: webviewState });
             return;
+          case 'requestConfig':
+            currentPanel.webview.postMessage({ command: 'config', content: config });
+            return;
+          case 'requestNodes':
+            currentPanel.webview.postMessage({ command: 'nodes', content: nodes });
+            return;
           case 'saveState':
             webviewState=message.state;
             return;
-          // case 'requestCurrentLine':
-          //   pushCurrentLine()
-          //   return;
           case 'requestCustom':
-            pushCustom()
+            currentPanel.webview.postMessage({ command: 'custom', content: { operate: [] } });
             return;
-          // case 'editCurrentLine':
-          //   setEditorText(message.text, message.control, message.file);
-          //   return;
+
         }
       },
       undefined,
@@ -162,18 +163,10 @@ function activate(context) {
     );
   }
 
-  function showPanel() {
-    currentPanel.reveal();
-  }
-
-  function pushCustom() {
-    currentPanel.webview.postMessage({ command: 'custom', content: { operate: [] } });
-  }
-
   context.subscriptions.push(
     vscode.commands.registerCommand('flowgraph.editCurrentLineAsSVG', () => {
       if (currentPanel) {
-        showPanel()
+        currentPanel.reveal();
       } else {
         createNewPanel()
       }

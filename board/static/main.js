@@ -1,15 +1,19 @@
-import { config } from './userdata.js'
-import { cardData } from './userdata.js'
+import { config } from './debugData.js'
+import { cardData } from './debugData.js'
 // import { cardData } from "./testdata.js";
 
 import { fg } from './flowgraph.js'
 
-fg.setConfig(config)
-fg.addContent(cardData)
+if (connectAPI.isDebug) {
+    fg.setConfig(config)
+    fg.addContent(cardData)
+    document.querySelector(".content-container").scrollLeft = 200
+}
 
-fg.requestState()
+fg.requestConfig()
+fg.requestNodes()
 
-document.querySelector(".content-container").scrollLeft = 200
+
 
 
 // Array.from({length:100}).map(v=>{

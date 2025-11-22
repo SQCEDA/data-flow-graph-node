@@ -40,7 +40,7 @@ _pos记录位置
 flowgraph->carddata
 flowgraph.config->config
 拉起webview/webview重载
-webview:requestCustom 拿到config
+webview:requestConfig 拿到config
 webview:requestNodes 拿到carddata
 webview:requestState 此时暂时时空白/加载运行数据
 

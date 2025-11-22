@@ -106,10 +106,6 @@ globalThis.addEventListener('message', event => {
       vscode.postMessage(x)
     }
     vscode.postMessage({ command: 'requestCustom' })
-    vscode.postMessage({ command: 'requestCurrentLine' })
-    globalThis.editor_mounted = () => {
-      vscode.postMessage({ command: 'requestCurrentLine' })
-    }
     connectAPI.isDebug=false
   } else {
     // local test
