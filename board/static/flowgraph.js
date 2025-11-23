@@ -70,7 +70,7 @@ export const fg = {
     currentCard: { index: -1, card: null, node: null, tick: 0 },
     lastCard: { index: -1, card: null, node: null, tick: 0 },
     moveSetting: { down: 1 },
-    mode: { edit: 1, run: -1, showfile: 1 },
+    mode: { edit: 1, run: -1 },
     // state: {},
     record: {},
     connectAPI:connectAPI,
@@ -404,18 +404,7 @@ export const fg = {
             return
         }
         if (fg.mode.run > 0) {
-            if (fg.mode.showfile > 0) {
-                connectAPI.showFile(Array.isArray(node.filename) ? node.filename[0] : node.filename)
-            } else {
-                let toshow=Array.isArray(node.filename) ? node.filename[0] : node.filename
-                toshow+='\n'
-                if (index in fg.record) {
-                    toshow+=JSON.stringify(fg.record[index])
-                } else {
-                    toshow+='null'
-                }
-                connectAPI.showText(toshow)
-            }
+            connectAPI.showFile(Array.isArray(node.filename) ? node.filename[0] : node.filename)
             return
         }
     },
@@ -456,6 +445,21 @@ export const fg = {
             Object.assign(record[0],ret)
         }
         // 提醒放在node侧, web侧不做提醒
+    },
+    showResult(index){
+        let node = fg.nodes[index]
+        let toshow=Array.isArray(node.filename) ? node.filename[0] : node.filename
+        toshow+='\n'
+        if (index in fg.record) {
+            toshow+=JSON.stringify(fg.record[index],null,4)
+        } else {
+            toshow+='null'
+        }
+        connectAPI.showText(toshow)
+    },
+    print(obj){
+        let print=fg.connectAPI.isDebug?console.log:connectAPI.showText
+        typeof obj == typeof ''?print(obj):print('\n\n\n\n'+JSON.stringify(obj,null,4)+'\n\n\n\n')
     },
     setConfig(config) {
         Object.assign(fg.config, config)

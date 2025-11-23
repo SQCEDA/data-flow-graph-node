@@ -55,6 +55,30 @@ function activate(context) {
   let config = undefined
   let nodes = undefined
 
+  function showText(text) {
+    if (showTextPanel == undefined || showTextPanel.isClosed) {
+      vscode.workspace.openTextDocument({
+        content: text,
+        encoding: 'utf8', language: 'log'
+      }).then(document => {
+        showTextPanel = document
+        vscode.window.showTextDocument(
+          showTextPanel,
+          vscode.ViewColumn.One,
+          true
+        )
+      })
+    } else {
+      vscode.window.showTextDocument(
+        showTextPanel,
+        vscode.ViewColumn.One,
+        true
+      ).then((editor) => editor.edit(edit => {
+        edit.replace(new vscode.Range(0, 0, 999999, 0), text);
+      }))
+    }
+  }
+
   function loadFlowGraphAndConfig() {
     let activeTextEditor = vscode.window.activeTextEditor;
     if (!activeTextEditor || activeTextEditor.document.isClosed || !activeTextEditor.document.fileName.endsWith('.flowgraph.json')) {
@@ -66,6 +90,13 @@ function activate(context) {
       fgobj = JSON.parse(activeTextEditor.document.getText())
       nodes = fgobj.nodes
       let configPath = path.join(path.dirname(activeTextEditor.document.fileName), fgobj.config)
+      if (!fs.existsSync(configPath)) {
+        configPath=fgobj.config
+        if(!!fs.existsSync(configPath)){
+          vscode.window.showErrorMessage('配置文件不存在');
+          return '';
+        }
+      }
       config = JSON.parse(fs.readFileSync(configPath, { encoding: 'utf8' }))
       // vscode.window.showInformationMessage('config:'+JSON.stringify(config))
     } catch (error) {
@@ -112,27 +143,7 @@ function activate(context) {
             )
             return;
           case 'showText':
-            if (showTextPanel == undefined || showTextPanel.isClosed) {
-              vscode.workspace.openTextDocument({
-                content: message.text,
-                encoding: 'utf8', language: 'log'
-              }).then(document => {
-                showTextPanel = document
-                vscode.window.showTextDocument(
-                  showTextPanel,
-                  vscode.ViewColumn.One,
-                  true
-                )
-              })
-            } else {
-              vscode.window.showTextDocument(
-                showTextPanel,
-                vscode.ViewColumn.One,
-                true
-              ).then((editor) => editor.edit(edit => {
-                edit.replace(new vscode.Range(0, 0, 9999, 0), message.text);
-              }))
-            }
+            showText(message.text)
             return;
           // case 'requestState':
           //   currentPanel.webview.postMessage({ command: 'state', content: webviewState });
@@ -144,9 +155,7 @@ function activate(context) {
             currentPanel.webview.postMessage({ command: 'nodes', content: nodes });
             return;
           case 'runFiles':
-            for (const file of message.files) {
-              runFile(file)
-            }
+            runFiles(message.files)
             return;
           // case 'saveState':
           //   webviewState = message.state;
@@ -170,9 +179,13 @@ function activate(context) {
     );
   }
 
-  function runFile(file) {
-    let {rid,rconfig,filename,submitTick}=file
-    console.log(file)
+  function runFiles(files) {
+    let output=[]
+    for (const file of files) {
+      let {rid,rconfig,filename,submitTick}=file
+      output.push(JSON.stringify(file,null,4))
+    }
+    showText(output.join('\n\n'))
   }
 
   context.subscriptions.push(

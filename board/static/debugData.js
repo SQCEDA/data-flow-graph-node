@@ -23,7 +23,7 @@ const toolbarData = [
 
 
 
-        { text: '测试1-打印nodes', class: 'edit', click: 'console.log("\\n\\n\\n\\n"+fg.simpleJson(fg.nodes)+"\\n\\n\\n\\n")' },
+        { text: '测试1-打印nodes', class: 'edit', click: 'fg.print("\\n\\n\\n\\n"+fg.simpleJson(fg.nodes)+"\\n\\n\\n\\n")' },
 
         { text: '?以点击为起点深度优先自动排布', class: 'edit', click: 'console.log("尚未实现")' },
 
@@ -47,9 +47,10 @@ const toolbarData = [
         { text: '?禁用', class: 'run', click: 'console.log("尚未实现")' },
         { text: '?运行链', class: 'run', click: 'console.log("尚未实现")' },
         { text: '运行', class: 'run', click: 'fg.runNodes([fg.currentCard.index])' },
-        { text: '结果/文件', class: 'run primary', click: 'fg.toggleButton(btn);fg.mode.showfile*=-1' },
+        { text: '结果', class: 'run', click: 'fg.showResult(fg.currentCard.index)' },
 
-        { text: '测试2-打印config', class: 'edit', click: 'console.log("\\n\\n\\n\\n"+JSON.stringify(fg.config)+"\\n\\n\\n\\n")' },
+        { text: '测试2-打印config', class: 'edit', click: 'fg.print(fg.config)' },
+        { text: '测试3-打印fg', class: 'edit', click: 'fg.print(fg)' },
     ]
 ];
 
