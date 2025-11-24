@@ -23,7 +23,7 @@ const toolbarData = [
 
 
 
-        { text: '测试1-打印nodes', class: 'edit', click: 'fg.print("\\n\\n\\n\\n"+fg.simpleJson(fg.nodes)+"\\n\\n\\n\\n")' },
+        { text: '测试1-打印nodes', class: 'edit', click: 'fg.print(fg.nodes)' },
 
         { text: '?以点击为起点深度优先自动排布', class: 'edit', click: 'console.log("尚未实现")' },
 

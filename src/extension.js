@@ -51,8 +51,11 @@ function activate(context) {
   /** @type {vscode.TextDocument | undefined} */
   let showTextPanel = undefined
   // let webviewState = {}
+  let rootPath = undefined
   let fgobj = undefined
+  // config 不需要通过插件修改
   let config = undefined
+  let nodesPath = undefined
   let nodes = undefined
   let recordPath = undefined
   let record = undefined
@@ -87,11 +90,12 @@ function activate(context) {
       vscode.window.showErrorMessage('No active .flowgraph.json file');
       return '';
     }
+    rootPath = path.dirname(activeTextEditor.document.fileName)
     currentEditor = activeTextEditor;
     try {
       fgobj = JSON.parse(activeTextEditor.document.getText())
-      nodes = fgobj.nodes
-      let configPath = path.join(path.dirname(activeTextEditor.document.fileName), fgobj.config)
+
+      let configPath = path.join(rootPath, fgobj.config)
       if (!fs.existsSync(configPath)) {
         configPath = fgobj.config
         if (!!fs.existsSync(configPath)) {
@@ -100,11 +104,20 @@ function activate(context) {
         }
       }
       config = JSON.parse(fs.readFileSync(configPath, { encoding: 'utf8' }))
-      recordPath = path.join(path.dirname(activeTextEditor.document.fileName), fgobj.record)
+
+      nodesPath = path.join(rootPath, fgobj.nodes)
+      if (!fs.existsSync(nodesPath)) {
+        vscode.window.showErrorMessage('节点文件不存在');
+        return '';
+      }
+      nodes = JSON.parse(fs.readFileSync(nodesPath, { encoding: 'utf8' }))
+
+      recordPath = path.join(rootPath, fgobj.record)
       if (!fs.existsSync(recordPath)) {
         fs.writeFileSync(recordPath, '{"current":[],"history":[]}', { encoding: 'utf8' });
       }
       record = JSON.parse(fs.readFileSync(recordPath, { encoding: 'utf8' }))
+
       // vscode.window.showInformationMessage('config:'+JSON.stringify(config))
     } catch (error) {
       vscode.window.showErrorMessage(error.stack);
@@ -136,7 +149,7 @@ function activate(context) {
 
         switch (message.command) {
           case 'showFile':
-            let filename = path.join(path.dirname(currentEditor.document.fileName), message.filename)
+            let filename = path.join(rootPath, message.filename)
             // vscode.workspace.rootPath+'/'+message.filename
             if (!fs.existsSync(filename)) {
               fs.writeFileSync(filename, '', { encoding: 'utf8' });
@@ -194,7 +207,7 @@ function activate(context) {
   function runTerminal(message) {
     if (!terminal || terminal.exitStatus) terminal = vscode.window.createTerminal({
       name: 'Flow Graph',
-      cwd: path.dirname(currentEditor.document.fileName)
+      cwd: rootPath
     });
     terminal.show();
     terminal.sendText(message);
@@ -229,7 +242,7 @@ function activate(context) {
         setRunTick(ctx)
         await showText(display.join('\n\n'))
 
-        let fullname = path.join(path.dirname(currentEditor.document.fileName), filename)
+        let fullname = path.join(rootPath, filename)
         let content = fs.readFileSync(fullname, { encoding: 'utf8' })
 
         function buildPayload(text) {
@@ -244,7 +257,7 @@ function activate(context) {
         }
         if (rconfig.type === 'node-terminal') {
           let payload = buildPayload(rconfig.payload)
-          const result = spawnSync(payload[0], payload.slice(1), { encoding: 'utf8', cwd: path.dirname(currentEditor.document.fileName) });
+          const result = spawnSync(payload[0], payload.slice(1), { encoding: 'utf8', cwd: rootPath });
           // display.push(JSON.stringify(result))
           if (result.status === 0) {
             setDoneTick(ctx, result.stdout.toString())
@@ -263,7 +276,7 @@ function activate(context) {
           continue
         }
         if (rconfig.type === 'concat') {
-          let targetPath = path.join(path.dirname(currentEditor.document.fileName), rconfig.filename)
+          let targetPath = path.join(rootPath, rconfig.filename)
           fs.writeFileSync(targetPath, content + '\n', { encoding: 'utf8', flag: 'a' })
           setDoneTick(ctx, 'write to ' + rconfig.filename)
           continue
