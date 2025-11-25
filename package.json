@@ -29,8 +29,8 @@
 		"commands": [
 			{
 				"command": "flowgraph.editFlowGraph",
-				"title": "flow graph",
-				"category": "flow graph"
+				"title": "Flow Graph",
+				"category": "Flow Graph"
 			}
 		],
 		"menus": {
@@ -44,7 +44,7 @@
 		},
 		"configuration": {
 			"type": "object",
-			"title": "flow graph",
+			"title": "Flow Graph",
 			"properties": {
 				"flowgraph.auto-folding": {
 					"type": "boolean",

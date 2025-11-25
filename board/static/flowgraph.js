@@ -70,7 +70,7 @@ export const fg = {
     currentCard: { index: -1, card: null, node: null, tick: 0 },
     lastCard: { index: -1, card: null, node: null, tick: 0 },
     moveSetting: { down: 1 },
-    mode: { edit: 1, run: -1 },
+    mode: { edit: -1, run: 1 },
     // state: {},
     record: [],
     connectAPI: connectAPI,

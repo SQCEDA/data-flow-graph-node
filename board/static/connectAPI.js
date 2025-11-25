@@ -3,6 +3,9 @@ export const connectAPI = {
   send(x) {
     console.log(x)
   },
+  info(x) {
+    console.log(x)
+  },
   recieve:{
     currentLine:'connectAPI.setContent(message.content)',
     custom:'connectAPI.custom(message.content)',
@@ -104,6 +107,12 @@ globalThis.addEventListener('message', event => {
     const vscode = acquireVsCodeApi();
     connectAPI.send = (x) => {
       vscode.postMessage(x)
+    }
+    connectAPI.info = (text) => {
+      vscode.postMessage({
+        text,
+        command: 'showInfo',
+      })
     }
     // vscode.postMessage({ command: 'requestCustom' })
     connectAPI.isDebug=false

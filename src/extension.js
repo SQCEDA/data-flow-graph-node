@@ -165,6 +165,9 @@ function activate(context) {
           case 'showText':
             showText(message.text)
             return;
+          case 'showInfo':
+            vscode.window.showInformationMessage(message.text)
+            return;
           // case 'requestState':
           //   currentPanel.webview.postMessage({ command: 'state', content: webviewState });
           //   return;

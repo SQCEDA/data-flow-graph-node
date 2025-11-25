@@ -2,7 +2,7 @@ import {blockPrototype} from './blockPrototype.js'
 
 const toolbarData = [
     [
-        { text: 'edit', class: 'primary', click: 'fg.toggleButton(btn);fg.toggleButton(btn.parentNode.parentNode.children[1-tindex].children[index]);fg.toggleMode();' },
+        { text: 'edit', class: '', click: 'fg.toggleButton(btn);fg.toggleButton(btn.parentNode.parentNode.children[1-tindex].children[index]);fg.toggleMode();' },
 
         { text: '+', class: 'edit', click: 'fg.scale(1.1)', title: '视图放大' },
 
@@ -17,7 +17,7 @@ const toolbarData = [
 
         { text: '复制', class: 'edit', click: 'fg.copyAndLink(fg.currentCard.index)' },
 
-        { text: '?启用', class: 'run', click: 'console.log("尚未实现")' },
+        { text: '?启用', class: 'run', click: 'fg.connectAPI.info("尚未实现")' },
 
         { text: '重置快照链', class: 'run', click: 'fg.clearSnapshotChain(fg.currentCard.index)' },
 
@@ -25,11 +25,11 @@ const toolbarData = [
 
         { text: '测试1-打印nodes', class: 'edit', click: 'fg.print(fg.nodes)' },
 
-        { text: '?以点击为起点深度优先自动排布', class: 'edit', click: 'console.log("尚未实现")' },
+        { text: '?以点击为起点深度优先自动排布', class: 'edit', click: 'fg.connectAPI.info("尚未实现")' },
 
     ],
     [
-        { text: 'run ', class: '', click: 'fg.toggleButton(btn);fg.toggleButton(btn.parentNode.parentNode.children[1-tindex].children[index]);fg.toggleMode();' },
+        { text: 'run ', class: 'primary', click: 'fg.toggleButton(btn);fg.toggleButton(btn.parentNode.parentNode.children[1-tindex].children[index]);fg.toggleMode();' },
 
         { text: '-', class: 'edit', click: 'fg.scale(1/1.1)', title: '视图缩小' },
 
@@ -44,7 +44,7 @@ const toolbarData = [
 
         { text: '删除', class: 'edit', click: 'fg.removeNode(fg.currentCard.index)' },
 
-        { text: '?禁用', class: 'run', click: 'console.log("尚未实现")' },
+        { text: '?禁用', class: 'run', click: 'fg.connectAPI.info("尚未实现")' },
         { text: '运行链', class: 'run', click: 'fg.runNodeChain(fg.currentCard.index)' },
         { text: '运行', class: 'run', click: 'fg.runNodes([fg.currentCard.index])' },
         { text: '结果', class: 'run', click: 'fg.showResult(fg.currentCard.index)' },
