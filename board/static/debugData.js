@@ -1,4 +1,4 @@
-import {blockPrototype} from './blockPrototype.js'
+import { blockPrototype } from './blockPrototype.js'
 
 const toolbarData = [
     [
@@ -59,6 +59,10 @@ export const config = {
     blockPrototype: blockPrototype,
     Runtype: {
         "": {
+            type: 'vscode-jupyter',
+            filename: 'workspace.ipynb'
+        },
+        "np": {
             type: 'node-post',
             url: 'http://127.0.0.1:12082/exec',
             payload: 'return ({code:content,filename:filename})',

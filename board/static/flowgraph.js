@@ -197,7 +197,7 @@ export const fg = {
             moveNode(node)
             fg.resetCurrentCardPos()
         } else {
-            let nodes = fg.findNodeForward(fg.currentCard.index, (vv)=>{
+            let nodes = fg.findNodeForward(fg.currentCard.index, (vv) => {
                 return vv._pos.left >= node._pos.left && vv._pos.top >= node._pos.top
             })
             nodes.forEach(v => {
@@ -345,7 +345,7 @@ export const fg = {
         fg.buildLines() // 理论上只应该重连涉及的图块的线,有需求再优化
     },
     findNodeBackward(index, filterFunc) {
-        if(filterFunc==null)filterFunc=()=>true
+        if (filterFunc == null) filterFunc = () => true
         let nodes = [] // just for hash
         let ret = []
         function getnodes(v) {
@@ -365,7 +365,7 @@ export const fg = {
         return ret
     },
     findNodeForward(index, filterFunc) {
-        if(filterFunc==null)filterFunc=()=>true
+        if (filterFunc == null) filterFunc = () => true
         let nodes = []
         function getnodes(v) {
             nodes.push(v)
@@ -483,12 +483,12 @@ export const fg = {
         })
         fg.connectAPI.send({ command: 'runFiles', files: files })
     },
-    runNodeChain(index){
-        let nodes=fg.findNodeBackward(index,(v)=>{
-            let index=fg.nodes.indexOf(v)
+    runNodeChain(index) {
+        let nodes = fg.findNodeBackward(index, (v) => {
+            let index = fg.nodes.indexOf(v)
             return !(fg.record[index] && fg.record[index].snapshot)
         })
-        fg.runNodes(nodes.map(v=>fg.nodes.indexOf(v)))
+        fg.runNodes(nodes.map(v => fg.nodes.indexOf(v)))
     },
     addResult(ctx) {
         let record = fg.record.filter(v => v.rid == ctx.rid)
@@ -524,17 +524,17 @@ export const fg = {
         record.forEach((ctx, index) => {
             if (fg.nodes[index].snapshot) {
 
-                contentElement.children[index].querySelector('snap').style.background = ctx.snapshot?`rgb(${155 + ctx.snapshot % 100}, ${155 + 2 * ctx.snapshot % 100}, ${155 + 3 * ctx.snapshot % 100})`:''
+                contentElement.children[index].querySelector('snap').style.background = ctx.snapshot ? `rgb(${155 + ctx.snapshot % 100}, ${155 + 2 * ctx.snapshot % 100}, ${155 + 3 * ctx.snapshot % 100})` : ''
             }
         })
     },
-    clearSnapshotChain(index){
-        let nodes=fg.findNodeForward(index)
-        let indexes=[]
-        nodes.forEach(v=>{
-            let index=fg.nodes.indexOf(v)
-            let record=fg.record[index]
-            if(record && record.snapshot){
+    clearSnapshotChain(index) {
+        let nodes = fg.findNodeForward(index)
+        let indexes = []
+        nodes.forEach(v => {
+            let index = fg.nodes.indexOf(v)
+            let record = fg.record[index]
+            if (record && record.snapshot) {
                 indexes.push(index)
             }
         })

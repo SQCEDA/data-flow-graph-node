@@ -31,6 +31,11 @@
 				"command": "flowgraph.editFlowGraph",
 				"title": "Flow Graph",
 				"category": "Flow Graph"
+			},
+			{
+				"command": "flowgraph.debug1",
+				"title": "Flow Graph - debug1",
+				"category": "Flow Graph"
 			}
 		],
 		"menus": {
