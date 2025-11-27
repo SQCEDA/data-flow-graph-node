@@ -70,7 +70,7 @@ export const fg = {
     currentCard: { index: -1, card: null, node: null, tick: 0 },
     lastCard: { index: -1, card: null, node: null, tick: 0 },
     moveSetting: { down: 1 },
-    mode: { edit: -1, run: 1 },
+    mode: { edit: -1, run: 1, file: 1 },
     // state: {},
     record: [],
     connectAPI: connectAPI,
@@ -436,7 +436,7 @@ export const fg = {
         if (fg.mode.edit > 0) {
             return
         }
-        if (fg.mode.run > 0) {
+        if (fg.mode.run > 0 && fg.mode.file > 0) {
             connectAPI.showFile(Array.isArray(node.filename) ? node.filename[0] : node.filename)
             return
         }

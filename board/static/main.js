@@ -12,7 +12,7 @@ if (fg.connectAPI.isDebug) {
         const cardData = m[0].cardData
         const exports = globalThis.exports
         const config = {
-            toolbar: exports.toolbarData,
+            toolbarData: exports.toolbarData,
             blockPrototype: exports.blockPrototype,
             Runtype: exports.Runtype,
         }

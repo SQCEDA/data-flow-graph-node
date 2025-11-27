@@ -17,6 +17,8 @@ const toolbarData = [
 
         { text: '?启用', class: 'run', click: 'fg.connectAPI.info("尚未实现")' },
 
+        { text: '文件', class: 'run primary', click: 'fg.toggleButton(btn);fg.mode.file*=-1', title: '点击卡片时是否显示文件'},
+
         { text: '重置快照链', class: 'run', click: 'fg.clearSnapshotChain(fg.currentCard.index)' },
 
 
