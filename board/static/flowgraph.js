@@ -218,6 +218,13 @@ export const fg = {
         ele.innerText = value || '';
         return ele
     },
+    buildMark(argi, type, node, block) {
+        let argv=block[type=='t'?'linkTo':'linkFrom'][argi]
+        let ele = document.createElement('linemark');
+        ele.className = `linemark linemark-${type} linemarkname-${argv.name} linemarkdirect-${argv.direct} linemarknodepend-${argv.nodepend} linemarkposition-${argv.position}`;
+        ele.innerText = type=='t'?'●':'○';
+        return ele
+    },
     buildCard(card, node, block) {
         card.innerHTML = ''
         card.className = 'card block';
@@ -233,7 +240,7 @@ export const fg = {
         let elements = [[]];
         let eline = elements[0]
         let message = block.message;
-        for (let ma; ma = /%\d+ |\n|%%|%r/.exec(message);) {
+        for (let ma; ma = /%\d+ |%[tf]\d+ |\n|%%|%r/.exec(message);) {
             if (ma.index != 0) eline.push(message.slice(0, ma.index));
             if (ma[0] == '\n') {
                 eline = []
@@ -252,6 +259,8 @@ export const fg = {
                     lineEle.append('%')
                 } else if (/^%\d+ $/.exec(ei)) {
                     lineEle.append(fg.buildField(-1 + ~~ei.slice(1), node, block))
+                } else if (/^%[tf]\d+ $/.exec(ei)) {
+                    lineEle.append(fg.buildMark(-1 + ~~ei.slice(2),ei[1], node, block))
                 } else if (ei == '%r') {
                     card.append(lineEle)
                     lineEle = document.createElement('span');
@@ -266,6 +275,17 @@ export const fg = {
             card.append(lastbr)
         }
         lastbr.remove()
+        block.linkTo.forEach((v,i)=>{
+            if (v.position) {
+                card.append(fg.buildMark(i,'t', node, block))
+            }
+        })
+        block.linkTo.forEach((v,i)=>{
+            if (v.position) {
+                card.append(fg.buildMark(i,'f', node, block))
+            }
+        })
+        
         return
     },
     addContent(nodes) {
@@ -431,6 +451,7 @@ export const fg = {
                 return
             }
         }
+        // 暂时没做合法性检查 todo
         fg.nodes[lsindex]._linkTo = Object.assign({}, fg.nodes[lsindex]._linkTo)
         fg.nodes[lsindex]._linkTo[lsname] = Object.assign({}, fg.nodes[lsindex]._linkTo[lsname], { [leindex - lsindex]: lename })
         fg.addLine(lsindex, leindex, lsname, lename)
@@ -692,6 +713,9 @@ export const fg = {
             }
         })
         fg.connectAPI.send({ command: 'clearSnapshot', indexes: indexes })
+    },
+    saveNodes(){
+        fg.connectAPI.send({ command: 'saveNodes', nodes: fg.nodes })
     },
     setMultiSelect(multiSelect) {
         fg.moveSetting.multiSelectNodes = fg.nodes.filter((v, i) => {

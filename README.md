@@ -56,7 +56,8 @@ await依次执行, 每执行完一个showText加上ext:result
 (暂未添加快照的处理, ?引入目录监测)
 (中间如果出现过删除节点?)
 
-runtype 添加jupyter有关的支持
+runtype 添加jupyter有关的支持  
+能用但感觉连接方式不稳定, 后续要fork vscode-jupyter的插件自己魔改一下
 
 通过proto来渲染方块
 

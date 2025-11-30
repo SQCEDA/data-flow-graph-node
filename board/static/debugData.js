@@ -8,5 +8,6 @@ export const cardData = [
     { text: "e2", filename: "e2.py", _pos: { left: 300, top: 200, width: 100, height: 100 }, _linkTo: { next: { "1": "previous" } } },
     { text: "f", filename: "f.py", _pos: { left: 100, top: 200, width: 200, height: 100 }, _linkTo: { next: { "1": "previous" } } },
     { text: "g", filename: "g.py", _pos: { left: 100, top: 300, width: 200, height: 100 }, _linkTo: { next: { "1": "previous" } } },
-    { text: "h", filename: "h.py", _pos: { left: 300, top: 300, width: 100, height: 100 } }
+    { text: "h", filename: "h.py", _pos: { left: 300, top: 300, width: 100, height: 100 } },
+    { text: "反馈", filename: "b.py", condition:'b.txt', maxCount:'10', snapshot: 's', _pos: { left: 300, top: 0, width: 200, height: 100 } },
 ]

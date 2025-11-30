@@ -53,10 +53,10 @@ const blockPrototype =
             typename: null,
             checkType: 'args',
             linkTo: [
-                { name: 'next', direct: 'down', range: 'run', target: 'previous' }
+                { name: 'next', direct: 'down', position:'d5', range: 'run', target: 'previous' }
             ],
             linkFrom: [
-                { name: 'previous', direct: 'up', range: 'run' }
+                { name: 'previous', direct: 'up', position:'u5', range: 'run' }
             ],
         },
         conditionfile: {
@@ -73,11 +73,11 @@ const blockPrototype =
             typename: null,
             checkType: 'args',
             linkTo: [
-                { name: 'next', direct: 'down', range: 'run', target: 'previous' },
+                { name: 'next', direct: 'down', position:'d5', range: 'run', target: 'previous' },
                 { name: 'drop', direct: 'right', range: 'run', target: 'previous', nodepend: true }
             ],
             linkFrom: [
-                { name: 'previous', direct: 'up', range: 'run' }
+                { name: 'previous', direct: 'up', position:'u5', range: 'run' }
             ],
         }
     }

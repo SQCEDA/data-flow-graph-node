@@ -181,3 +181,23 @@ body {
     display: none;
     pointer-events: none;
 }
+
+.linemark{
+    opacity: 0.15;
+}
+.linemarkdirect-right{
+    position: relative; left: 9px
+}
+.linemarkdirect-left{
+    position: relative; left: -9px
+}
+.linemarkposition-d5{
+    position: absolute;
+    left: calc(50% - 4px);
+    top: calc(100% - 14px);
+}
+.linemarkposition-u5{
+    position: absolute;
+    left: calc(50% - 4px);
+    top: calc(0% - 4px);
+}

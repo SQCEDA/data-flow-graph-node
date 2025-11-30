@@ -182,6 +182,10 @@ function activate(context) {
           case 'requestNodes':
             currentPanel.webview.postMessage({ command: 'nodes', content: nodes });
             return;
+          case 'saveNodes':
+            nodes=message.nodes
+            fs.writeFileSync(nodesPath, JSON.stringify(nodes, null, 4), { encoding: 'utf8' });
+            return;
           case 'requestRecord':
             currentPanel.webview.postMessage({ command: 'record', content: record.current });
             return;

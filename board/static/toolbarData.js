@@ -35,7 +35,7 @@ const toolbarData = [
         { text: 'run ', class: 'primary', click: 'fg.toggleButton(btn);fg.toggleButton(btn.parentNode.parentNode.children[1-tindex].children[index]);fg.toggleMode();' },
 
         { text: '-', class: '', click: 'fg.scale(1/1.1)', title: '视图缩小' },
-        { text: 's', class: 'edit', click: '', title: '占位置,暂时没用,之后做成保存按钮' },
+        { text: 's', class: 'edit', click: 'fg.saveNodes()', title: '保存节点图' },
 
         { text: '<', class: 'edit', click: 'fg.move("left")' },
         { text: 'v', class: 'edit', click: 'fg.move("down")' },
