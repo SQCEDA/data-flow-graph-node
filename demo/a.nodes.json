@@ -1,4 +1,3 @@
-
 [
     {
         "text": "a",
@@ -28,7 +27,8 @@
         },
         "_linkTo": {
             "next": {
-                "1": "previous"
+                "1": "previous",
+                "8": "previous"
             }
         }
     },
@@ -67,6 +67,7 @@
     {
         "text": "e1",
         "filename": "e1.py",
+        "snapshot": "",
         "_pos": {
             "left": 0,
             "top": 200,
@@ -132,6 +133,24 @@
             "top": 300,
             "width": 100,
             "height": 100
+        }
+    },
+    {
+        "text": "反馈",
+        "filename": "fb.py",
+        "condition": "b.txt",
+        "maxCount": "5",
+        "snapshot": "s",
+        "_pos": {
+            "left": 300,
+            "top": 0,
+            "width": 200,
+            "height": 100
+        },
+        "_linkTo": {
+            "drop": {
+                "-4": "previous"
+            }
         }
     }
 ]

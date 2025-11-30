@@ -31,9 +31,10 @@ toolbar.addEventListener('click', function (e) {
 });
 
 let elementScale = 1;
-const lineElement = document.querySelector('.line');
+const lineElement = document.querySelector('.line-container');
 const contentElement = document.querySelector('.content');
 const contentScaleElement = document.querySelector('.content-scale');
+const contentContainerElement = document.querySelector('.content-container');
 const selectionBox = document.querySelector('.selectionBox');
 
 contentElement.addEventListener('click', function (e) {
@@ -59,6 +60,16 @@ contentElement.addEventListener('click', function (e) {
         console.log(`点击了卡片: ${target.textContent}`);
         let index = Array.prototype.indexOf.call(target.parentNode.children, target)
         fg.setAsCurrentCard(index)
+
+        if (1) {
+            document.querySelectorAll(`.linesi-${index} path`).forEach(v=>{
+                v.style.strokeWidth = '5px';
+                setTimeout(() => {
+                    v.style.strokeWidth = '';
+                }, 150);
+            })
+        }
+
         fg.clickCard(index, target, directTarget, e)
     }
 });
@@ -66,11 +77,14 @@ contentElement.addEventListener('click', function (e) {
 const multiSelect = {
     isSelecting: false,
 }
-contentScaleElement.addEventListener('mousedown', function (e) {
+const multiSelectListenEle = document.body
+multiSelectListenEle.addEventListener('mousedown', function (e) {
     if (fg.mode.edit < 0) return
     if (fg.moveSetting.multiSelect < 0) return
-    multiSelect.isSelecting = true;
     const rect = contentScaleElement.getBoundingClientRect();
+    if (e.clientY < rect.top) return
+    multiSelect.isSelecting = true;
+
     multiSelect.startX = e.clientX - rect.left;
     multiSelect.startY = e.clientY - rect.top;
     multiSelect.startX /= elementScale
@@ -81,7 +95,7 @@ contentScaleElement.addEventListener('mousedown', function (e) {
     selectionBox.style.height = '0px';
     selectionBox.style.display = 'block';
 });
-contentScaleElement.addEventListener('mousemove', function (e) {
+multiSelectListenEle.addEventListener('mousemove', function (e) {
     if (fg.mode.edit < 0) return
     if (fg.moveSetting.multiSelect < 0) return
     if (!multiSelect.isSelecting) return;
@@ -101,7 +115,7 @@ contentScaleElement.addEventListener('mousemove', function (e) {
 });
 
 // 鼠标释放事件
-contentScaleElement.addEventListener('mouseup', function () {
+multiSelectListenEle.addEventListener('mouseup', function () {
     if (fg.mode.edit < 0) return
     if (fg.moveSetting.multiSelect < 0) return
     if (!multiSelect.isSelecting) return;
@@ -125,7 +139,7 @@ export const fg = {
     link: [],
     currentCard: { index: -1, card: null, node: null, tick: 0 },
     lastCard: { index: -1, card: null, node: null, tick: 0 },
-    moveSetting: { down: -1, multiSelect: 1, multiSelectNodes: [] },
+    moveSetting: { down: -1, multiSelect: -1, multiSelectNodes: [] },
     mode: { edit: -1, run: 1, file: 1 },
     // state: {},
     record: [],
@@ -219,10 +233,10 @@ export const fg = {
         return ele
     },
     buildMark(argi, type, node, block) {
-        let argv=block[type=='t'?'linkTo':'linkFrom'][argi]
+        let argv = block[type == 't' ? 'linkTo' : 'linkFrom'][argi]
         let ele = document.createElement('linemark');
         ele.className = `linemark linemark-${type} linemarkname-${argv.name} linemarkdirect-${argv.direct} linemarknodepend-${argv.nodepend} linemarkposition-${argv.position}`;
-        ele.innerText = type=='t'?'●':'○';
+        ele.innerText = type == 't' ? '●' : '○';
         return ele
     },
     buildCard(card, node, block) {
@@ -260,7 +274,7 @@ export const fg = {
                 } else if (/^%\d+ $/.exec(ei)) {
                     lineEle.append(fg.buildField(-1 + ~~ei.slice(1), node, block))
                 } else if (/^%[tf]\d+ $/.exec(ei)) {
-                    lineEle.append(fg.buildMark(-1 + ~~ei.slice(2),ei[1], node, block))
+                    lineEle.append(fg.buildMark(-1 + ~~ei.slice(2), ei[1], node, block))
                 } else if (ei == '%r') {
                     card.append(lineEle)
                     lineEle = document.createElement('span');
@@ -275,17 +289,17 @@ export const fg = {
             card.append(lastbr)
         }
         lastbr.remove()
-        block.linkTo.forEach((v,i)=>{
+        block.linkTo.forEach((v, i) => {
             if (v.position) {
-                card.append(fg.buildMark(i,'t', node, block))
+                card.append(fg.buildMark(i, 't', node, block))
             }
         })
-        block.linkTo.forEach((v,i)=>{
+        block.linkTo.forEach((v, i) => {
             if (v.position) {
-                card.append(fg.buildMark(i,'f', node, block))
+                card.append(fg.buildMark(i, 'f', node, block))
             }
         })
-        
+
         return
     },
     addContent(nodes) {
@@ -304,7 +318,7 @@ export const fg = {
     firstAddContent() {
         if (globalThis.__firstAddContent_has_run) return
         globalThis.__firstAddContent_has_run = 1
-        document.querySelector(".content-container").scrollLeft = LEFTMARGIN
+        contentContainerElement.scrollLeft = LEFTMARGIN
     },
     setAsCurrentCard(index) {
         Object.assign(fg.lastCard, fg.currentCard)
@@ -318,6 +332,8 @@ export const fg = {
         fg.buildLines() // 理论上只应该重连一个图块的线,有需求再优化
     },
     move(direct) {
+        let sl = contentContainerElement.scrollLeft
+        let st = contentContainerElement.scrollTop
         function moveNode(node) {
             switch (direct) {
                 case 'up':
@@ -356,6 +372,8 @@ export const fg = {
             })
             fg.buildLines() // 理论上只应该重连涉及的图块的线,有需求再优化
         }
+        contentContainerElement.scrollLeft = sl
+        contentContainerElement.scrollTop = st
     },
     scale(rate) {
         // let cr = /\((.*)\)/.exec(contentElement.style.transform)[1];
@@ -374,7 +392,42 @@ export const fg = {
     reDrawLine(lsindex, leindex) {
         // console.log(lsindex, leindex, fg.link[lsindex][leindex])
         for (const linei of fg.link[lsindex][leindex]) {
-            let { s, e } = linei
+            let { s, sb, e, eb, lsname, lename } = linei
+            let sr = contentElement.children[lsindex].querySelector('.linemarkname-' + lsname).getBoundingClientRect()
+            let er = contentElement.children[leindex].querySelector('.linemarkname-' + lename).getBoundingClientRect()
+            const rect = contentScaleElement.getBoundingClientRect();
+
+            let pts = [{
+                left: sr.left + sr.width / 2 - rect.left,
+                top: sr.top + sr.height / 2 - rect.top,
+            }, {
+                left: sr.left + sr.width / 2 - rect.left,
+                top: sr.top + sr.height / 2 - rect.top,
+            }, {
+                left: er.left + er.width / 2 - rect.left,
+                top: er.top + er.height / 2 - rect.top,
+            }, {
+                left: er.left + er.width / 2 - rect.left,
+                top: er.top + er.height / 2 - rect.top,
+            }]
+
+            pts = pts.map(v => ({ left: v.left + 0.15104150772094727, top: v.top - 0.333333969116211 }))
+            pts = pts.map(v => ({ left: v.left / elementScale, top: v.top / elementScale }))
+
+            const l1 = 17
+            let m = {
+                up: { left: 0, top: -l1 },
+                down: { left: 0, top: l1 },
+                left: { left: -l1, top: 0 },
+                right: { left: l1, top: 0 },
+            }
+            let sd = sb.linkTo.filter(v => v.name == lsname)[0].direct
+            let ed = eb.linkFrom.filter(v => v.name == lename)[0].direct
+            pts[1].left += m[sd].left
+            pts[1].top += m[sd].top
+            pts[2].left += m[ed].left
+            pts[2].top += m[ed].top
+
             function getExpandedBoundingRect(rect1, rect2, expand = 100) {
                 const minX = Math.min(rect1.left, rect2.left);
                 const minY = Math.min(rect1.top, rect2.top);
@@ -391,24 +444,10 @@ export const fg = {
                 return expandedRect;
             }
             let pos = getExpandedBoundingRect(s, e)
-            const b1 = 15
-            const l1 = 17
-            let pts = [{
-                left: s.left + s.width / 2,
-                top: s.top + s.height - b1,
-            }, {
-                left: s.left + s.width / 2,
-                top: s.top + s.height - b1 + l1,
-            }, {
-                left: e.left + e.width / 2,
-                top: e.top + b1 - l1,
-            }, {
-                left: e.left + e.width / 2,
-                top: e.top + b1,
-            }].map(v => ({ left: v.left - pos.left, top: v.top - pos.top }))
+            pts = pts.map(v => ({ left: v.left - pos.left - LEFTMARGIN, top: v.top - pos.top }))
 
             const line = document.createElement('div');
-            line.className = 'line';
+            line.className = `line linei-${lsindex}-${leindex} linesi-${lsindex} lineei-${leindex} line-${lsname}-${lename} lines-${lsname} linee-${lename}`;
             line.innerHTML = `<svg width="${pos.width}" height="${pos.height}" xmlns="http://www.w3.org/2000/svg"><path d="M ${pts[0].left} ${pts[0].top} C ${pts[1].left} ${pts[1].top} ${pts[2].left} ${pts[2].top} ${pts[3].left} ${pts[3].top}" stroke="white" fill="transparent"/></svg>`
             fg.setLinePos(line, pos)
             if (linei.element) linei.element.remove();
@@ -420,9 +459,9 @@ export const fg = {
         // console.log(lsindex, leindex, lsname, lename)
         fg.link[lsindex][leindex].push({
             s: fg.nodes[lsindex]._pos,
-            sp: 'down',
+            sb: fg.guessType(fg.nodes[lsindex]),
             e: fg.nodes[leindex]._pos,
-            ep: 'up',
+            eb: fg.guessType(fg.nodes[lsindex]),
             element: null,
             lsname,
             lename,
@@ -614,13 +653,30 @@ export const fg = {
             return
         }
     },
+    changeNodeType(index) {
+        let node = fg.nodes[index]
+        let card = contentElement.children[index]
+        let block = fg.config.blockPrototype.blocks[card.getAttribute('block')]
+        let rblock = block
+        if (block.type=='runfile') {
+            rblock = fg.config.blockPrototype.blocks['conditionfile']
+            node.condition=rblock.args.filter(v=>v.name=='condition')[0].value
+
+        } else if (block.type=='conditionfile'){
+            rblock = fg.config.blockPrototype.blocks['runfile']
+            delete node.condition
+            delete node.maxCount
+            delete node?._linkTo?.drop
+        }
+        fg.buildCard(card, node, rblock)
+    },
     // saveState(){
     //     connectAPI.send({ command: 'saveState', state: fg.state })
     // },
     // updateFromState(state){
     //     // update from fg.state
     //     fg.state=state
-    //     document.querySelector(".content-container").scrollLeft = LEFTMARGIN
+    //     contentContainerElement.scrollLeft = LEFTMARGIN
     // },
     // requestState(){
     //     connectAPI.send({ command: 'requestState' })
@@ -714,7 +770,7 @@ export const fg = {
         })
         fg.connectAPI.send({ command: 'clearSnapshot', indexes: indexes })
     },
-    saveNodes(){
+    saveNodes() {
         fg.connectAPI.send({ command: 'saveNodes', nodes: fg.nodes })
     },
     setMultiSelect(multiSelect) {

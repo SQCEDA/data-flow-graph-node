@@ -63,9 +63,10 @@ runtype 添加jupyter有关的支持
 
 多选的移动
 
-> conditionfile, 要改runfiles机制, 以及其反馈机制结合重置快照链完成
+conditionfile
+
+> 改runfiles机制支持反馈, 其反馈机制结合重置快照链完成
 > + findNode xx ward 函数添加上线的信息
-> + 线条渲染, 更多种类的线
 
 > 快捷键绑定
 

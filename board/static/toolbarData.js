@@ -5,7 +5,7 @@ const toolbarData = [
         { text: '+', class: '', click: 'fg.scale(1.1)', title: '视图放大' },
 
         { text: 'r', class: '', click: 'fg.scale()', title: '恢复初始视图大小' },
-        { text: 'm', class: 'edit primary', click: 'fg.toggleButton(btn);fg.moveSetting.multiSelect*=-1', title: '移动框选的方块, 此设置优先级高于移动连接' },
+        { text: 'm', class: 'edit', click: 'fg.toggleButton(btn);fg.moveSetting.multiSelect*=-1', title: '移动框选的方块, 此设置优先级高于移动连接' },
         { text: '^', class: 'edit', click: 'fg.move("up")' },
         { text: 'd', class: 'edit', click: 'fg.toggleButton(btn);fg.moveSetting.down*=-1', title: '同时移动右下方的连接' },
 
@@ -13,6 +13,7 @@ const toolbarData = [
         { text: 'v+', class: 'edit', click: 'fg.currentCard.node._pos.height+=100;fg.resetCurrentCardPos()' },
 
         { text: '连接', class: 'edit', click: 'fg.uiAddLine(fg.lastCard.index,fg.currentCard.index,"next","previous")' },
+        { text: '连接反馈', class: 'edit', click: 'fg.uiAddLine(fg.lastCard.index,fg.currentCard.index,"drop","previous")' },
 
         { text: '复制', class: 'edit', click: 'fg.copyAndLink(fg.currentCard.index)' },
 
@@ -21,10 +22,6 @@ const toolbarData = [
         
 
         { text: '重置快照链', class: 'run', click: 'fg.clearSnapshotChain(fg.currentCard.index)' },
-
-
-
-        { text: '?切换方块类型', class: 'edit', click: '' },
 
         { text: '测试1-打印nodes', class: 'edit', click: 'fg.print(fg.nodes)' },
 
@@ -44,7 +41,9 @@ const toolbarData = [
         { text: '>-', class: 'edit', click: 'fg.currentCard.node._pos.width-=100;fg.resetCurrentCardPos()' },
         { text: 'v-', class: 'edit', click: 'fg.currentCard.node._pos.height-=100;fg.resetCurrentCardPos()' },
 
-        { text: '断开', class: 'edit', click: 'fg.uiRemoveLine(fg.lastCard.index,fg.currentCard.index,"next","previous")' },
+        { text: '断开', class: 'edit', click: 'fg.uiRemoveLine(fg.lastCard.index,fg.currentCard.index,"next","previous");fg.uiRemoveLine(fg.lastCard.index,fg.currentCard.index,"drop","previous")' },
+
+        { text: '切换种类', class: 'edit', click: 'fg.changeNodeType(fg.currentCard.index)' },
 
         { text: '删除', class: 'edit', click: 'fg.removeNode(fg.currentCard.index)' },
 

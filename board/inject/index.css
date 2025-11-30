@@ -138,9 +138,18 @@ body {
     font-size: 18px;
 }
 
+.line-container {
+    position: absolute;
+}
 .line {
     position: absolute;
 }
+.line-drop-previous path {
+    stroke-dasharray: 10, 5, 3, 5;
+}
+/* .line path{
+    transition: strokeWidth 0.3s ease;
+} */
 
 .fright{
     float:right;
