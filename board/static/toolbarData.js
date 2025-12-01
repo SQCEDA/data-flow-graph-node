@@ -24,8 +24,8 @@ const toolbarData = [
 
         { text: '重置快照链', class: 'run', click: 'fg.clearSnapshotChain(fg.currentCard.index)' },
 
-        { text: '自动排布(层级拓扑排序)', class: 'edit', click: 'fg.autoLayout()' },
-        
+        { text: '自动排布', class: 'edit', title: '层级拓扑排序, 如果开启了移动框选或移动后继, 则只排相应的方块', click: 'fg.autoLayout()' },
+
         { text: '测试1-打印nodes', class: 'edit', click: 'fg.print(fg.nodes)' },
 
     ],

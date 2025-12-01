@@ -36,7 +36,7 @@ const levelTopologicalSort = (nodes, indexes = null) => {
     const queue = [];
 
     // 初始化队列（入度为0的节点）
-    for (let i = 0; i < n; i++) {
+    for (let i of indexes) {
         if (inDegree[i] === 0) {
             queue.push(i);
         }
@@ -70,7 +70,7 @@ const levelTopologicalSort = (nodes, indexes = null) => {
     }
 
     // 3. 检查是否存在环
-    const hasRing = processedCount !== n;
+    const hasRing = processedCount !== indexes.length;
 
     return {
         levels,

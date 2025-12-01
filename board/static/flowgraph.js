@@ -838,15 +838,33 @@ export const fg = {
     autoLayout() {
         import('./levelTopologicalSort.js').then((m) => {
             let levelTopologicalSort = m.levelTopologicalSort || globalThis.levelTopologicalSort
-            const { ring, levels } = levelTopologicalSort(fg.nodes)
+            let indexes = null
+            if (fg.moveSetting.down > 0) {
+                indexes = fg.findNodeForward(fg.currentCard.index, (vv, lines) => {
+                    // 只接受next->previous的线
+                    if (lines.filter(l => l.lsname == 'next' && l.lename == 'previous').length == 0) {
+                        return false
+                    }
+                    return true
+                }).map(v => fg.nodes.indexOf(v))
+            }
+            if (fg.moveSetting.multiSelect > 0) {
+                indexes = fg.moveSetting.multiSelectNodes.map(v => fg.nodes.indexOf(v))
+            }
+            const { ring, levels } = levelTopologicalSort(fg.nodes, indexes)
+            console.log(levels, ring, indexes)
             if (ring) {
                 fg.connectAPI.info('当前节点图包含环无法自动排布')
                 return
             }
-            let top = 0
+            if (levels.length == 0) {
+                fg.connectAPI.info('当前无选中的节点')
+                return
+            }
+            let top = fg.nodes[levels[0][0]]._pos.top
             for (const level of levels) {
                 let maxHeight = 0
-                let left = 0
+                let left = fg.nodes[levels[0][0]]._pos.left
                 level.sort((a, b) => fg.nodes[a]._pos.left + 0.00001 * a < fg.nodes[b]._pos.left + 0.00001 * b)
                 for (const index of level) {
                     let node = fg.nodes[index]
