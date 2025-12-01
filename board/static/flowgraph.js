@@ -390,7 +390,11 @@ export const fg = {
             moveNode(node)
             fg.resetCurrentCardPos()
         } else {
-            let nodes = fg.findNodeForward(fg.currentCard.index, (vv) => {
+            let nodes = fg.findNodeForward(fg.currentCard.index, (vv, lines) => {
+                // 只接受next->previous的线
+                if (lines.filter(l => l.lsname == 'next' && l.lename == 'previous').length == 0) {
+                    return false
+                }
                 return vv._pos.left >= node._pos.left && vv._pos.top >= node._pos.top
             })
             nodes.forEach(v => {
@@ -566,6 +570,7 @@ export const fg = {
         fg.buildLines() // 理论上只应该重连涉及的图块的线,有需求再优化
     },
     findNodeBackward(index, filterFunc) {
+        // 如果无环,结果是拓扑序
         if (filterFunc == null) filterFunc = () => true
         let nodes = [] // just for hash
         let ret = []
@@ -575,7 +580,7 @@ export const fg = {
             for (let lsindex = 0; lsindex < fg.nodes.length; lsindex++) {
                 if (fg.link[lsindex][leindex].length) {
                     let vv = fg.nodes[lsindex]
-                    if (nodes.indexOf(vv) === -1 && filterFunc(vv)) {
+                    if (nodes.indexOf(vv) === -1 && filterFunc(vv, fg.link[lsindex][leindex])) {
                         getnodes(vv)
                     }
                 }
@@ -586,20 +591,17 @@ export const fg = {
         return ret
     },
     findNodeForward(index, filterFunc) {
+        // 如果无环,结果是拓扑序
         if (filterFunc == null) filterFunc = () => true
         let nodes = []
         function getnodes(v) {
             nodes.push(v)
             let lsindex = fg.nodes.indexOf(v)
-            if (v._linkTo) for (let lsname in v._linkTo) {
-                for (let deltai in v._linkTo[lsname]) {
-                    // let lename = v._linkTo[lsname][deltai]
-                    let leindex = lsindex + ~~deltai
-                    if (leindex >= 0 && leindex < fg.nodes.length) {
-                        let vv = fg.nodes[leindex]
-                        if (nodes.indexOf(vv) === -1 && filterFunc(vv)) {
-                            getnodes(vv)
-                        }
+            for (let leindex = 0; leindex < fg.nodes.length; leindex++) {
+                if (fg.link[lsindex][leindex].length) {
+                    let vv = fg.nodes[leindex]
+                    if (nodes.indexOf(vv) === -1 && filterFunc(vv, fg.link[lsindex][leindex])) {
+                        getnodes(vv)
                     }
                 }
             }
@@ -746,8 +748,12 @@ export const fg = {
         fg.connectAPI.send({ command: 'runFiles', files: files })
     },
     runNodeChain(index) {
-        let nodes = fg.findNodeBackward(index, (v) => {
+        let nodes = fg.findNodeBackward(index, (v, lines) => {
             let index = fg.nodes.indexOf(v)
+            // 只接受next->previous的线
+            if (lines.filter(l => l.lsname == 'next' && l.lename == 'previous').length == 0) {
+                return false
+            }
             // 未设置快照 或 快照不存在
             return !v.snapshot || !(fg.record[index] && fg.record[index].snapshot)
         })
@@ -792,7 +798,13 @@ export const fg = {
         })
     },
     clearSnapshotChain(index) {
-        let nodes = fg.findNodeForward(index)
+        let nodes = fg.findNodeForward(index, (v, lines) => {
+            // 只接受next->previous的线
+            if (lines.filter(l => l.lsname == 'next' && l.lename == 'previous').length == 0) {
+                return false
+            }
+            return true
+        })
         let indexes = []
         nodes.forEach(v => {
             let index = fg.nodes.indexOf(v)
@@ -820,6 +832,32 @@ export const fg = {
             }, 150);
 
             return true
+        })
+    },
+    autoLayout() {
+        import('./levelTopologicalSort.js').then((m) => {
+            let levelTopologicalSort = m.levelTopologicalSort || globalThis.levelTopologicalSort
+            const { ring, levels } = levelTopologicalSort(fg.nodes)
+            if (ring) {
+                fg.connectAPI.info('当前节点图包含环无法自动排布')
+                return
+            }
+            let top = 0
+            for (const level of levels) {
+                let maxHeight = 0
+                let left = 0
+                level.sort((a, b) => fg.nodes[a]._pos.left + 0.00001 * a < fg.nodes[b]._pos.left + 0.00001 * b)
+                for (const index of level) {
+                    let node = fg.nodes[index]
+                    node._pos.left = left
+                    left += node._pos.width
+                    node._pos.top = top
+                    maxHeight = Math.max(maxHeight, node._pos.height)
+                    fg.setCardPos(contentElement.children[index], node._pos)
+                }
+                top += maxHeight
+            }
+            fg.buildLines()
         })
     },
     print(obj) {
