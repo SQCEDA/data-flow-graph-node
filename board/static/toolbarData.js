@@ -5,9 +5,9 @@ const toolbarData = [
         { text: '+', class: '', id: '=', click: 'fg.scale(1.1)', title: '视图放大' },
 
         { text: 'r', class: '', id: '0', click: 'fg.scale()', title: '恢复初始视图大小' },
-        { text: 'm', class: 'edit', id: 'q', click: 'fg.toggleButton(btn);fg.moveSetting.multiSelect*=-1', title: '移动框选的方块, 此设置优先级高于移动连接' },
+        { text: 'm', class: 'edit', id: 'q', click: 'fg.toggleButton(btn);fg.moveSetting.multiSelect*=-1', title: '移动框选的方块, 此设置优先级高于移动后继' },
         { text: '^', class: 'edit', id: 'w', click: 'fg.move("up")' },
-        { text: 'd', class: 'edit', id: 'e', click: 'fg.toggleButton(btn);fg.moveSetting.down*=-1', title: '同时移动右下方的连接' },
+        { text: 'd', class: 'edit', id: 'e', click: 'fg.toggleButton(btn);fg.moveSetting.down*=-1', title: '同时移动所有后继, 此设置优先级低于移动框选' },
 
         { text: '>+', class: 'edit', id: 'f', click: 'fg.currentCard.node._pos.width+=100;fg.resetCurrentCardPos()' },
         { text: '>-', class: 'edit', id: 'g', click: 'fg.currentCard.node._pos.width-=100;fg.resetCurrentCardPos()' },

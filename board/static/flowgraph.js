@@ -395,7 +395,8 @@ export const fg = {
                 if (lines.filter(l => l.lsname == 'next' && l.lename == 'previous').length == 0) {
                     return false
                 }
-                return vv._pos.left >= node._pos.left && vv._pos.top >= node._pos.top
+                return true
+                // return vv._pos.left >= node._pos.left && vv._pos.top >= node._pos.top
             })
             nodes.forEach(v => {
                 moveNode(v)
