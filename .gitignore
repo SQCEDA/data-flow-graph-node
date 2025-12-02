@@ -143,3 +143,4 @@ board/ai-demo*.html
 board/static/testdata.js
 *.record.json
 demo/test.*.json
+publish.md
