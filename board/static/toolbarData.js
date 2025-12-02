@@ -33,7 +33,7 @@ const toolbarData = [
         { text: 'run ', class: 'primary', id: 'r', click: 'fg.toggleButton(btn);fg.toggleButton(btn.parentNode.parentNode.children[1-tindex].children[index]);fg.toggleMode();' },
 
         { text: '-', class: '', id: '-', click: 'fg.scale(1/1.1)', title: '视图缩小' },
-        { text: 's', class: 'edit', id: 'save', click: 'fg.saveNodes()', title: '保存节点图' },
+        { text: 's', class: 'edit', id: 'save', click: 'fg.saveNodes()', title: '保存节点图(每次运行前也会保存)' },
 
         { text: '<', class: 'edit', id: 'a', click: 'fg.move("left")' },
         { text: 'v', class: 'edit', id: 's', click: 'fg.move("down")' },
@@ -51,7 +51,7 @@ const toolbarData = [
         { text: 'f', class: 'run primary', id: 'file', click: 'fg.toggleButton(btn);fg.mode.file*=-1', title: '点击卡片时是否显示文件' },
 
         { text: '?禁用', class: 'run', click: 'fg.connectAPI.info("尚未实现")' },
-        { text: '运行链', class: 'run', id: 'run chain', click: 'fg.runNodeChain(fg.currentCard.index)' },
+        { text: '运行链', class: 'run', id: 'run chain', click: 'fg.runChain(fg.currentCard.index)' },
         { text: '运行', class: 'run', id: 'run', click: 'fg.runNodes([fg.currentCard.index])' },
         { text: '结果', class: 'run', id: 'result', click: 'fg.showResult(fg.currentCard.index)' },
 

@@ -29,8 +29,13 @@
             "next": {
                 "1": "previous",
                 "8": "previous"
+            },
+            "drop": {
+                "-1": "previous"
             }
-        }
+        },
+        "condition": "c.txt",
+        "maxCount": "2"
     },
     {
         "text": "c",

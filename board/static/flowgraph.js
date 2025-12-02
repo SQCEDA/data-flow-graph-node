@@ -727,38 +727,10 @@ export const fg = {
         connectAPI.send({ command: 'requestRecord' })
     },
     runNodes(indexes) {
-        let files = indexes.map(index => {
-            let node = fg.nodes[index]
-            let rid = fg.getRandomString()
-            let submitTick = new Date().getTime()
-            let runtype = node.runtype ? node.runtype[0] : ''
-            let rconfig = fg.config.Runtype[runtype]
-            let filename = Array.isArray(node.filename) ? node.filename[0] : node.filename
-            let snapshot = 'head'
-            for (let si = 0; si < fg.nodes.length; si++) {
-                if (fg.link[si][index].length) {
-                    snapshot = si
-                    break
-                }
-            }
-
-            let ret = { rid, index, snapshot, rconfig, filename, submitTick }
-            fg.record[index] = ret
-            return ret
-        })
-        fg.connectAPI.send({ command: 'runFiles', files: files })
+        fg.connectAPI.send({ command: 'runNodes', nodes: fg.nodes, indexes: indexes })
     },
-    runNodeChain(index) {
-        let nodes = fg.findNodeBackward(index, (v, lines) => {
-            let index = fg.nodes.indexOf(v)
-            // 只接受next->previous的线
-            if (lines.filter(l => l.lsname == 'next' && l.lename == 'previous').length == 0) {
-                return false
-            }
-            // 未设置快照 或 快照不存在
-            return !v.snapshot || !(fg.record[index] && fg.record[index].snapshot)
-        })
-        fg.runNodes(nodes.map(v => fg.nodes.indexOf(v)))
+    runChain(index) {
+        fg.connectAPI.send({ command: 'runChain', nodes: fg.nodes, targetIndex: index })
     },
     addResult(ctx) {
         let record = fg.record.filter(v => v.rid == ctx.rid)
