@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flow Graph</title>
+    <script type="module" crossorigin src="../inject/index.js"></script>
+    <link rel="stylesheet" href="../inject/index.css">
+</head>
+
+<body class="runmode">
+    <div class="toolbar-container">
+        <div class="toolbar">
+            <div class="toolbar-row">
+            </div>
+            <div class="toolbar-row">
+            </div>
+        </div>
+    </div>
+    <div class="content-container">
+        <div class="content-scale" style="transform:scale(1);">
+            <div class="selectionBox"></div>
+            <div class="line-container"></div>
+            <div class="content"></div>
+        </div>
+    </div>
+    <script type="module" crossorigin>
+
+        import { fg } from './flowgraph.js'
+
+        Promise.all([
+            import('./toolbarData.js'),
+            import('./Runtype.js'),
+            import('./keymap.js'),
+        ]).then(m => {
+            const cardData = [
+                {
+                    "type": "object",
+                    "k": "",
+                    "v": "123",
+                    "_pos": {
+                        "left": 0,
+                        "top": 0,
+                        "width": 100,
+                        "height": 100
+                    },
+                    "_linkTo": {
+                        "v": {
+                            "1": "previous"
+                        }
+                    }
+                },
+                {
+                    "type": "bool_or_null",
+                    "k": "a",
+                    "v": "null",
+                    "_pos": {
+                        "left": 100,
+                        "top": 0,
+                        "width": 100,
+                        "height": 100
+                    },
+                    "_linkTo": {
+                        "next": {
+                            "1": "previous"
+                        }
+                    }
+                },
+                {
+                    "type": "bool_or_null",
+                    "k": "b",
+                    "v": "true",
+                    "_pos": {
+                        "left": 100,
+                        "top": 100,
+                        "width": 100,
+                        "height": 100
+                    },
+                    "_linkTo": {
+                        "next": {
+                            "1": "previous"
+                        }
+                    }
+                },
+                {
+                    "type": "array",
+                    "k": "c",
+                    "v": "null",
+                    "_pos": {
+                        "left": 100,
+                        "top": 200,
+                        "width": 100,
+                        "height": 100
+                    },
+                    "_linkTo": {
+                        "next": {
+                            "1": "previous"
+                        },
+                        "v": {
+                            "2": "previous"
+                        }
+                    }
+                },
+                {
+                    "type": "number",
+                    "k": "ee",
+                    "v": "42",
+                    "_pos": {
+                        "left": 100,
+                        "top": 300,
+                        "width": 100,
+                        "height": 100
+                    }
+                },
+                {
+                    "type": "array",
+                    "k": "",
+                    "v": "null",
+                    "_pos": {
+                        "left": 200,
+                        "top": 200,
+                        "width": 100,
+                        "height": 100
+                    },
+                    "_linkTo": {
+                        "next": {
+                            "1": "previous"
+                        },
+                        "v": {
+                            "2": "previous"
+                        }
+                    }
+                },
+                {
+                    "type": "string",
+                    "k": "",
+                    "v": "ererer",
+                    "_pos": {
+                        "left": 200,
+                        "top": 300,
+                        "width": 100,
+                        "height": 100
+                    }
+                },
+                {
+                    "type": "array",
+                    "k": "",
+                    "v": "null",
+                    "_pos": {
+                        "left": 300,
+                        "top": 200,
+                        "width": 100,
+                        "height": 100
+                    },
+                    "_linkTo": {
+                        "next": {
+                            "1": "previous"
+                        }
+                    }
+                },
+                {
+                    "type": "object",
+                    "k": "",
+                    "v": "null",
+                    "_pos": {
+                        "left": 300,
+                        "top": 300,
+                        "width": 100,
+                        "height": 100
+                    }
+                }
+            ]
+            const exports = globalThis.exports
+            const config = {
+                toolbarData: exports.toolbarData,
+                blockPrototype: {
+                    "collection": {
+                        "json": [
+                            "object",
+                            "array",
+                            "number",
+                            "string",
+                            "bool_or_null"
+                        ]
+                    },
+                    "blocks": {
+                        "Int": {
+                            "type": "number",
+                            "value": 0
+                        },
+                        "Number": {
+                            "type": "string",
+                            "value": "1"
+                        },
+                        "NormalString": {
+                            "type": "string",
+                            "value": "NormalString_default"
+                        },
+                        "Snapshot": {
+                            "type": "snapshot",
+                            "value": ""
+                        },
+                        "MultiString": {
+                            "type": "multi_string",
+                            "value": "MultiString_default"
+                        },
+                        "Runfile": {
+                            "type": "edit_able_droplist",
+                            "options": [
+                                [
+                                    "",
+                                    ""
+                                ],
+                                [
+                                    "1",
+                                    "1"
+                                ]
+                            ],
+                            "value": ""
+                        },
+                        "Runtype": {
+                            "type": "edit_able_droplist",
+                            "options": [
+                                [
+                                    "",
+                                    ""
+                                ],
+                                [
+                                    "1",
+                                    "1"
+                                ],
+                                [
+                                    "2",
+                                    "2"
+                                ],
+                                [
+                                    "3",
+                                    "3"
+                                ]
+                            ],
+                            "value": ""
+                        },
+                        "object": {
+                            "type": "object",
+                            "message": "object\n%1 \n%r%t2 ",
+                            "args": [
+                                {
+                                    "name": "k",
+                                    "type": "MultiString",
+                                    "value": ""
+                                }
+                            ],
+                            "typename": "type",
+                            "checkType": "type",
+                            "linkTo": [
+                                {
+                                    "name": "next",
+                                    "direct": "down",
+                                    "position": "d5",
+                                    "range": "json",
+                                    "target": "previous"
+                                },
+                                {
+                                    "name": "v",
+                                    "direct": "right",
+                                    "range": "json",
+                                    "target": "previous"
+                                }
+                            ],
+                            "linkFrom": [
+                                {
+                                    "name": "previous",
+                                    "direct": "up",
+                                    "position": "u5",
+                                    "range": "json"
+                                }
+                            ]
+                        },
+                        "array": {
+                            "type": "array",
+                            "message": "array\n%1 \n%r%t2 ",
+                            "args": [
+                                {
+                                    "name": "k",
+                                    "type": "MultiString",
+                                    "value": ""
+                                }
+                            ],
+                            "typename": "type",
+                            "checkType": "type",
+                            "linkTo": [
+                                {
+                                    "name": "next",
+                                    "direct": "down",
+                                    "position": "d5",
+                                    "range": "json",
+                                    "target": "previous"
+                                },
+                                {
+                                    "name": "v",
+                                    "direct": "right",
+                                    "range": "json",
+                                    "target": "previous"
+                                }
+                            ],
+                            "linkFrom": [
+                                {
+                                    "name": "previous",
+                                    "direct": "up",
+                                    "position": "u5",
+                                    "range": "json"
+                                }
+                            ]
+                        },
+                        "number": {
+                            "type": "number",
+                            "message": "number\n%1 \n%2 ",
+                            "args": [
+                                {
+                                    "name": "k",
+                                    "type": "MultiString",
+                                    "value": ""
+                                },
+                                {
+                                    "name": "v",
+                                    "type": "MultiString",
+                                    "value": "1"
+                                }
+                            ],
+                            "typename": "type",
+                            "checkType": "type",
+                            "linkTo": [
+                                {
+                                    "name": "next",
+                                    "direct": "down",
+                                    "position": "d5",
+                                    "range": "json",
+                                    "target": "previous"
+                                }
+                            ],
+                            "linkFrom": [
+                                {
+                                    "name": "previous",
+                                    "direct": "up",
+                                    "position": "u5",
+                                    "range": "json"
+                                }
+                            ]
+                        },
+                        "string": {
+                            "type": "string",
+                            "message": "string\n%1 \n%2 ",
+                            "args": [
+                                {
+                                    "name": "k",
+                                    "type": "MultiString",
+                                    "value": ""
+                                },
+                                {
+                                    "name": "v",
+                                    "type": "MultiString",
+                                    "value": "abc"
+                                }
+                            ],
+                            "typename": "type",
+                            "checkType": "type",
+                            "linkTo": [
+                                {
+                                    "name": "next",
+                                    "direct": "down",
+                                    "position": "d5",
+                                    "range": "json",
+                                    "target": "previous"
+                                }
+                            ],
+                            "linkFrom": [
+                                {
+                                    "name": "previous",
+                                    "direct": "up",
+                                    "position": "u5",
+                                    "range": "json"
+                                }
+                            ]
+                        },
+                        "bool_or_null": {
+                            "type": "bool_or_null",
+                            "message": "bool_or_null\n%1 \n%2 ",
+                            "args": [
+                                {
+                                    "name": "k",
+                                    "type": "MultiString",
+                                    "value": ""
+                                },
+                                {
+                                    "name": "v",
+                                    "type": "MultiString",
+                                    "value": "null"
+                                }
+                            ],
+                            "typename": "type",
+                            "checkType": "type",
+                            "linkTo": [
+                                {
+                                    "name": "next",
+                                    "direct": "down",
+                                    "position": "d5",
+                                    "range": "json",
+                                    "target": "previous"
+                                }
+                            ],
+                            "linkFrom": [
+                                {
+                                    "name": "previous",
+                                    "direct": "up",
+                                    "position": "u5",
+                                    "range": "json"
+                                }
+                            ]
+                        }
+                    }
+                },
+                Runtype: exports.Runtype,
+                keymap: exports.keymap,
+                "custom": {
+                    "operate": [
+                        {
+                            "type": "script",
+                            "function": "fg.toggleMode();document.querySelectorAll('div.toolbar-row > button:nth-child(1)').forEach(v=>v.style.display='none')"
+                        },
+                        {
+                            "type": "script",
+                            "function": "fg.convertToJSON=function(){   function walker(index, ctx) {    let node = fg.nodes[index];    let v = node.v;    if (node.type == 'array') {        v=[];        if (node?._linkTo?.v)v = walker(index + ~~Object.keys(node._linkTo.v)[0], { type: 'array', v: [] })    };    if (node.type == 'object') {        v={};        if (node?._linkTo?.v)v = walker(index + ~~Object.keys(node._linkTo.v)[0], { type: 'object', v: {} })    };    if (node.type == 'bool_or_null') {        v = node.v == 'true' ? true : (node.v == 'false' ? false : null)    };    if (node.type == 'number') {        v = parseFloat(node.v)    };    if (ctx == null) {        return v    };    if (ctx.type == 'object') {        ctx.v[node.k] = v;        if (node?._linkTo?.next) walker(index + ~~Object.keys(node._linkTo.next)[0], ctx);        return ctx.v    };    if (ctx.type == 'array') {        ctx.v.push(v);        if (node?._linkTo?.next) walker(index + ~~Object.keys(node._linkTo.next)[0], ctx);        return ctx.v    };};fg.buildLines();let ret = [];for (let i = 0; i < fg.nodes.length; i++) {    if (fg.nodes.every((v, j) => fg.link[j][i].length == 0)) {        ret.push(walker(i))    }};alert(JSON.stringify(ret[0], null, 4));   }"
+                        },
+                        {
+                            "type": "script",
+                            "function": "fg.addToolbar([[{ text: 'convertToJSON', class: 'edit', click: 'fg.convertToJSON()' }],[]])"
+                        }
+                    ]
+                },
+            }
+            fg.setConfig(config)
+            fg.addContent(cardData)
+        })
+
+
+
+
+
+    </script>
+</body>
+
+</html>

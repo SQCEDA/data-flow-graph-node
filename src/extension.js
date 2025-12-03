@@ -329,6 +329,7 @@ function activate(context) {
     // 取所有a_i中组合最小的, 组合相等时选大图中序靠后的点
 
     record.drop = []
+    record.concat = {}
 
     let preorpostfunc = (index, func) => func(index, (v, lines) => {
       // 只接受next->previous的线
@@ -487,7 +488,14 @@ function activate(context) {
         }
         if (rconfig.type === 'concat') {
           let targetPath = path.join(rootPath, rconfig.filename)
-          fs.writeFileSync(targetPath, content + '\n', { encoding: 'utf8', flag: 'a' })
+          if(targetPath in record?.concat){
+            fs.writeFileSync(targetPath, content + '\n', { encoding: 'utf8', flag: 'a' })
+            record.concat[targetPath]+=1
+          }else{
+            record.concat=record.concat||{}
+            fs.writeFileSync(targetPath, content + '\n', { encoding: 'utf8'})
+            record.concat[targetPath]=1
+          }
           setDoneTick(ctx, 'write to ' + rconfig.filename)
         }
         if (rconfig.type === 'vscode-jupyter') {

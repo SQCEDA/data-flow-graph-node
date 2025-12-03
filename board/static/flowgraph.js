@@ -329,6 +329,11 @@ export const fg = {
 
         return
     },
+    cleanContent(){
+        fg.nodes=[]
+        fg.buildLines()
+        contentElement.innerHTML=''
+    },
     addContent(nodes) {
         nodes.forEach((node, index) => {
             let block = fg.guessType(node)
