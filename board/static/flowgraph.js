@@ -898,8 +898,8 @@ export const fg = {
         if (config.custom) {
             config.custom.operate.forEach(operate => {
                 if (operate.type === 'script') {
-                    let func = new Function(operate.function)
-                    func()
+                    let func = new Function('fg',operate.function)
+                    func(fg)
                 }
             })
         }

@@ -296,8 +296,8 @@ function activate(context) {
       if (fg.config.custom) {
         fg.config.custom.extension.forEach(operate => {
           if (operate.type === 'script') {
-            let func = new Function(operate.function)
-            func()
+            let func = new Function('fg', 'recieveMessage', operate.function)
+            func(fg, recieveMessage)
           }
         })
       }
