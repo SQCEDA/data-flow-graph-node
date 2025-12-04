@@ -145,3 +145,4 @@ board/static/testdata.js
 demo/test.*.json
 publish.md
 *.vsix
+__pycache__

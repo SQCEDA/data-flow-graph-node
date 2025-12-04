@@ -1,4 +1,5 @@
 .vscode/**
 .gitignore
 node_modules
+__pycache__
 publish.md
