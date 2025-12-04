@@ -71,7 +71,57 @@ findNode xx ward 函数添加上线的信息
 
 改runfiles机制支持反馈, 其反馈机制结合重置快照链完成
 
-> removenode后send一个remove, ext移除记录, 再把record发回来. 这里主要是注册事件的机制
+> 提供一个初始化的命令
+
+```
+      // https://code.visualstudio.com/api/extension-guides/notebook#:~:text=The%20Notebook%20API%20allows%20Visual%20Studio%20Code%20extensions,allows%20for%20similar%20experiences%20inside%20Visual%20Studio%20Code.
+
+      // vscode.NotebookDocument
+
+      //     private getCellFromActiveEditor(): NotebookCell | undefined {
+      //     const editor = window.activeNotebookEditor;
+      //     if (editor) {
+      //         const range = editor.selections[0];
+      //         if (range) {
+      //             return editor.notebook.cellAt(range.start);
+      //         }
+      //     }
+      // }
+
+      // notebook.focusBottom
+      // notebook.cell.insertCodeCellBelow
+
+      // notebook.cell.edit ?
+
+      // notebook.cell.execute
+      
+      
+      // 奇怪bug导致每一节新的运行, 上一个会被多运行一次...
+      // ['ScLYkoK4XBDSH2ra49S59bYzepmVVNUl','ScLYkoK4XBDSH2ra49S59bYzepmVVNUl','aVKSnS6zUy4OSAEtuP8kUq2dPRNZO3x4','aVKSnS6zUy4OSAEtuP8kUq2dPRNZO3x4','vo5LHYIFnRIA2hKqnzFxKpQTlJgCYc5Q']
+      // delay 1000 后好了
+      vscode.window.showInformationMessage('submit done: ' + JSON.stringify(ret))
+      // 一次只能搞两个... 看来还是要扫文件来判定结束
+      // 也是只管提交不等结束就执行这里了
+      // vscode.window.showInformationMessage(vscode.window.activeTextEditor.document.getText()) // 没用只能拿到当前cell不是整个文件
+
+    // https://stackoverflow.com/questions/72912713/programmatically-execute-cell-jupyter-vscode
+    // 用类似这个方案来做, 维护一个ipython, 自己写成ipynb
+    // 或者找找没有用脚本和jupyter交互的机制
+    // def execute_cell(filepath,cell_number_range=[0]):
+    // import io
+    // from  nbformat import current
+    // with io.open(filepath) as f:
+    //     nb = current.read(f, 'json')
+    // ip = get_ipython()
+    // for cell_number in cell_number_range:
+    //     cell=nb.worksheets[0].cells[cell_number]
+    //     #print (cell)
+    //     if cell.cell_type == 'code' : ip.run_cell(cell.input)
+
+    // 或者换一个思路, jupyter的第一节运行一个特殊的server, 然后node和这个server交互, 这个server自己能后续操作这个jupyter本身
+```
+
+> ? removenode后send一个remove, ext移除记录, 再把record发回来. 这里主要是注册事件的机制
 
 > ? 引入数据集: 记录多选的脚本名字的选择, 不同的数据状态
 

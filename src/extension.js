@@ -488,13 +488,13 @@ function activate(context) {
         }
         if (rconfig.type === 'concat') {
           let targetPath = path.join(rootPath, rconfig.filename)
-          if(targetPath in record?.concat){
+          if (targetPath in record?.concat) {
             fs.writeFileSync(targetPath, content + '\n', { encoding: 'utf8', flag: 'a' })
-            record.concat[targetPath]+=1
-          }else{
-            record.concat=record.concat||{}
-            fs.writeFileSync(targetPath, content + '\n', { encoding: 'utf8'})
-            record.concat[targetPath]=1
+            record.concat[targetPath] += 1
+          } else {
+            record.concat = record.concat || {}
+            fs.writeFileSync(targetPath, content + '\n', { encoding: 'utf8' })
+            record.concat[targetPath] = 1
           }
           setDoneTick(ctx, 'write to ' + rconfig.filename)
         }
@@ -550,44 +550,34 @@ function activate(context) {
   }
   async function runJupyter(fullname, rid, code) {
     await vscode.commands.executeCommand('vscode.openWith', vscode.Uri.file(fullname), 'jupyter-notebook')
-    await vscode.commands.executeCommand('jupyter.notebookeditor.addcellbelow')
-    await delay(1000)
+    await vscode.commands.executeCommand('notebook.focusBottom')
+    await vscode.commands.executeCommand('notebook.cell.insertCodeCellBelow')
+    await delay(300)
+    const nbeditor = vscode.window.activeNotebookEditor;
     let editor = vscode.window.activeTextEditor;
     await editor.edit(edit => {
       edit.insert(editor.selection.active, '#rid:' + rid + '\n' + code);
     })
-    //jupyter.runcurrentcell 等等都不工作, 只找到 jupyter.runAndDebugCell 能跑...
-    await vscode.commands.executeCommand('jupyter.runAndDebugCell')
-    let done = false
-    let outputs = undefined
-    while (!done) {
-      await delay(1000)
-      let nbt = JSON.parse(fs.readFileSync(fullname, { encoding: 'utf8' }))
-      for (const cell of nbt.cells) {
-        if (cell.cell_type == 'code' && cell.source && cell.source[0] == '#rid:' + rid + '\n') {
-          done = cell.execution_count != null
-          outputs = cell.outputs
-          break
-        }
-      }
-    }
+    await vscode.commands.executeCommand('notebook.cell.execute')
+    let robj = nbeditor.notebook.getCells().slice(-1)[0]
+    robj = { outputs: robj.outputs, executionSummary: robj.executionSummary }
+    // vscode.window.showInformationMessage(JSON.stringify(robj))
+    // console.log(robj)
     let ret = { output: [], error: [] }
-    outputs.forEach(v => {
+    robj.outputs.forEach(v => {
       try {
-        if (v.output_type == 'stream') {
-          ret.output.push(v.text.join(''))
-        } else if (v.output_type == 'execute_result') {
-          ret.output.push(v.data["text/plain"].join(''))
-        } else if (v.output_type == 'error') {
-          ret.error.push(v.traceback.join('\n').replace(/\u001b\[[0-9;]*m/g, ''))
+        if (v.metadata.outputType == 'stream') {
+          ret.output.push(v.items.map(v => v.data.toString()).join(''))
+        } else if (v.metadata.outputType == 'execute_result') {
+          ret.output.push(v.items.map(v => v.data.toString()).join(''))
+        } else if (v.metadata.outputType == 'error') {
+          ret.error.push(v.metadata.originalError.traceback.join('\n').replace(/\u001b\[[0-9;]*m/g, ''))
         }
       } catch (error) {
       }
     })
     ret.output = ret.output.join('\n')
     ret.error = ret.error.join('\n')
-    // build output from ret
-    await delay(1000)
     return ret
   }
 
@@ -631,46 +621,64 @@ function activate(context) {
   }
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('flowgraph.debug1', async () => {
+    vscode.commands.registerCommand('flowgraph.initProject', async () => {
 
-      let filename = '/home/zhaouv/e/git/github/data-flow-graph-node/demo/w1.ipynb'
-      // const editor = vscode.window.showTextDocument(
-      //   vscode.Uri.file(filename),
-      //   {
-      //     viewColumn: vscode.ViewColumn.One,
-      //     preserveFocus: true,
-      //     preview: true,
-      //     selection: new vscode.Range(999999, 0, 999999, 0)
-      //   }
-      // )
-      let ret;
-      ret = await runJupyter(filename, getRandomString(), 'print(123);import time;time.sleep(3);print(456);a.append("' + getRandomString() + '");print(a)')
-      ret = await runJupyter(filename, getRandomString(), 'print(123);import time;time.sleep(3);print(456);a.append("' + getRandomString() + '");print(a)')
-      ret = await runJupyter(filename, getRandomString(), 'print(123);import time;time.sleep(3);print(456);a.append("' + getRandomString() + '");print(a);1/0')
-      // 奇怪bug导致每一节新的运行, 上一个会被多运行一次...
-      // ['ScLYkoK4XBDSH2ra49S59bYzepmVVNUl','ScLYkoK4XBDSH2ra49S59bYzepmVVNUl','aVKSnS6zUy4OSAEtuP8kUq2dPRNZO3x4','aVKSnS6zUy4OSAEtuP8kUq2dPRNZO3x4','vo5LHYIFnRIA2hKqnzFxKpQTlJgCYc5Q']
-      // delay 1000 后好了
-      vscode.window.showInformationMessage('submit done: ' + JSON.stringify(ret))
-      // 一次只能搞两个... 看来还是要扫文件来判定结束
-      // 也是只管提交不等结束就执行这里了
-      // vscode.window.showInformationMessage(vscode.window.activeTextEditor.document.getText()) // 没用只能拿到当前cell不是整个文件
+      async function initProject() {
+        let defaultpath = path.join(vscode.workspace.rootPath, 'a1').toString()
+        let userInput = await vscode.window.showInputBox({
+          prompt: 'input path',
+          // ignoreFocusOut: true, // 设为true可防止点击编辑器其他区域时输入框关闭
+          value: defaultpath, // 可设置默认值
+          valueSelection: [defaultpath.length - 2, defaultpath.length] // 可预设选中部分默认文本，例如选中"default"
+        })
+        if (userInput == null) return
+        let dirname = path.dirname(userInput)
+        let basename = path.basename(userInput)
+        let prefix = path.join(dirname, basename)
+        fs.writeFileSync(prefix + '.flowgraph.json', `{"config": "${basename}.config.json","nodes": "${basename}.nodes.json","record": "${basename}.record.json"}`, { encoding: 'utf8' });
+        fs.writeFileSync(prefix + '.config.json', JSON.stringify({ Runtype }, null, 4), { encoding: 'utf8' });
+        fs.writeFileSync(prefix + '.nodes.json', JSON.stringify([{
+          "text": "new",
+          "filename": "a.py",
+          "_pos": {
+            "left": 0,
+            "top": 100,
+            "width": 100,
+            "height": 100
+          }
+        }], null, 4), { encoding: 'utf8' });
+        await vscode.window.showTextDocument(
+          vscode.Uri.file(prefix + '.flowgraph.json'),
+          {
+            viewColumn: vscode.ViewColumn.One,
+            preserveFocus: true
+          }
+        )
+        await vscode.commands.executeCommand('flowgraph.editFlowGraph')
+      }
+
+      async function debug1(params) {
+        let rid = getRandomString()
+        let code = 'print(123);import time;time.sleep(1);print(456);a.append("' + rid + '");print(a)'
+        // let code='print(123);import time;time.sleep(1);print(456);{1:2}'
+
+        let fullname = '/home/zhaouv/e/git/github/data-flow-graph-node/demo/workspace.ipynb'
+        let fullname2 = '/home/zhaouv/e/git/github/data-flow-graph-node/demo/w1.ipynb'
+        let ret;
+
+        ret = await runJupyter(fullname, getRandomString(), 'print(123);import time;time.sleep(3);print(456);a.append("' + getRandomString() + '");print(a)')
+        ret = await runJupyter(fullname2, getRandomString(), 'print(123);import time;time.sleep(3);print(456);a.append("' + getRandomString() + '");print(a)')
+        ret = await runJupyter(fullname, getRandomString(), 'print(123);import time;time.sleep(3);print(456);a.append("' + getRandomString() + '");print(a);1/0')
+
+        vscode.window.showInformationMessage('submit done: ' + JSON.stringify(ret))
+      }
+
+      // debug1()
+
+      initProject()
 
     })
-    // https://stackoverflow.com/questions/72912713/programmatically-execute-cell-jupyter-vscode
-    // 用类似这个方案来做, 维护一个ipython, 自己写成ipynb
-    // 或者找找没有用脚本和jupyter交互的机制
-    // def execute_cell(filepath,cell_number_range=[0]):
-    // import io
-    // from  nbformat import current
-    // with io.open(filepath) as f:
-    //     nb = current.read(f, 'json')
-    // ip = get_ipython()
-    // for cell_number in cell_number_range:
-    //     cell=nb.worksheets[0].cells[cell_number]
-    //     #print (cell)
-    //     if cell.cell_type == 'code' : ip.run_cell(cell.input)
 
-    // 或者换一个思路, jupyter的第一节运行一个特殊的server, 然后node和这个server交互, 这个server自己能后续操作这个jupyter本身
   );
 
   context.subscriptions.push(
