@@ -359,6 +359,35 @@ function activate(context) {
       setTimeout(() => registration.dispose(), 1000);
     }
   }
+  async function showFilesDiff(groups, title = '和快照变更比较') {
+    // 创建唯一的 URI
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substring(2, 15);
+    // 创建内容提供者
+    const provider = new DiffContentProvider();
+    // 注册内容提供者（使用自定义的 scheme 'mydiff'）
+    const registration = vscode.workspace.registerTextDocumentContentProvider('mydiff', provider);
+    try {
+      const uris = groups.map(v => {
+        const [filename, oldcontent] = v
+        const realfile = vscode.Uri.file(path.join(rootPath, filename))
+        const leftUri = vscode.Uri.parse(`mydiff:${filename}-${timestamp}-${randomId}.txt`);
+        provider.setContent(leftUri, oldcontent);
+        return [realfile, leftUri, realfile]
+      })
+      // January 2024 (version 1.86)
+      // https://code.visualstudio.com/updates/v1_86#_review-multiple-files-in-diff-editor
+      // 打开 diff 视图
+      await vscode.commands.executeCommand(
+        'vscode.changes',
+        title, // 整个多文件diff视图的标题
+        uris
+      );
+    } finally {
+      // 清理：稍后注销提供者
+      setTimeout(() => registration.dispose(), 1000);
+    }
+  }
   /**
    * 检查源代码和record的源代码的一致性
    * @param {Array} indexes 
@@ -366,7 +395,7 @@ function activate(context) {
    */
   async function checkSource(indexes) {
     if (fg.config?.Snapshot?.noCheckSource) return
-    let diff = {}
+    // let diff = {}
     // 不一致时为 true
     let failCheck = await Promise.all(indexes.map(async index => {
       let ctx = fg.record[index]
@@ -374,7 +403,7 @@ function activate(context) {
       if (!ctx || !ctx.content || !ctx.snapshot) return false
       let content = await fs.promises.readFile(path.join(rootPath, ctx.filename), { encoding: 'utf8' })
       if (ctx.content != content) {
-        diff[index] = content
+        // diff[index] = content
         return true
       } else {
         return false
@@ -400,18 +429,20 @@ function activate(context) {
     if (fg.config?.Snapshot?.noShowCheckSourceDiff) return
     toRemove = indexes.filter((v, i) => failCheck[i])
     if (toRemove.length == 0) return
-    let textA=[]
-    let textB=[]
-    toRemove.forEach(index=>{
-      let ctx=fg.record[index]
-      textA.push('# '+ctx.filename+'\n')
-      textB.push('# '+ctx.filename+'\n')
-      textA.push(ctx.content)
-      textB.push(diff[index])
-      textA.push('\n')
-      textB.push('\n')
-    })
-    await showTextDiff(textA.join('\n'), textB.join('\n'), '和快照变更比较');
+    // let textA = []
+    // let textB = []
+    // toRemove.forEach(index => {
+    //   let ctx = fg.record[index]
+    //   textA.push('#%% ' + ctx.filename + '\n')
+    //   textB.push('#%% ' + ctx.filename + '\n')
+    //   textA.push(ctx.content)
+    //   textB.push(diff[index])
+    //   textA.push('\n')
+    //   textB.push('\n')
+    // })
+    // await showTextDiff(textA.join('\n'), textB.join('\n'), '和快照变更比较');
+
+    await showFilesDiff(toRemove.map(index => [fg.record[index].filename, fg.record[index].content]))
 
   }
 
@@ -782,23 +813,44 @@ function activate(context) {
 
       async function debug_diff(params) {
 
-        const textA = `function greet(name) {
-            console.log("Hello, " + name);
-        }
-        
-        greet("World");`;
+        // 创建唯一的 URI
+        const timestamp = Date.now();
+        const randomId = Math.random().toString(36).substring(2, 15);
+        const leftUri = vscode.Uri.parse(`mydiff:left-${timestamp}-${randomId}.txt`);
+        const rightUri = vscode.Uri.parse(`mydiff:right-${timestamp}-${randomId}.txt`);
+        const leftUri2 = vscode.Uri.parse(`mydiff:left2-${timestamp}-${randomId}.txt`);
+        const rightUri2 = vscode.Uri.parse(`mydiff:right2-${timestamp}-${randomId}.txt`);
+        // 创建内容提供者
+        const provider = new DiffContentProvider();
+        // 注册内容提供者（使用自定义的 scheme 'mydiff'）
+        const registration = vscode.workspace.registerTextDocumentContentProvider('mydiff', provider);
+        // 设置内容
+        provider.setContent(leftUri, `print('a')\na=999;import sys;print(f'123{a}3123');print(sys.argv)`);
+        provider.setContent(rightUri, `print('a')\na=999;import sys;print(f'123{a}32117563');print(sys.argv)`);
+        provider.setContent(leftUri2, '{\n    "version": "1.0.0"\n}');
+        provider.setContent(rightUri2, '{\n    "version": "2.0.0",\n    "debug": true\n}');
 
-        const textB = `function greet(name) {
-            console.log("Hello, " + name);
-            console.log("Welcome!");
+        const realfile1 = vscode.Uri.file('/home/zhaouv/e/git/github/data-flow-graph-node/demo/a.py')
+        const realfile2 = vscode.Uri.file('/home/zhaouv/e/git/github/data-flow-graph-node/demo/b.py')
+        try {
+          // January 2024 (version 1.86)
+          // https://code.visualstudio.com/updates/v1_86#_review-multiple-files-in-diff-editor
+          // 打开 diff 视图
+          await vscode.commands.executeCommand(
+            'vscode.changes',
+            '代码审查变更集', // 整个多文件diff视图的标题
+            [
+              [rightUri, leftUri, rightUri],
+              [rightUri2, leftUri2, rightUri2],
+              [realfile1, leftUri, realfile1],
+              [realfile1, realfile2, realfile1],
+            ]
+          );
+        } finally {
+          // 清理：稍后注销提供者
+          setTimeout(() => registration.dispose(), 1000);
         }
-        
-        // 调用函数
-        greet("World");
-        greet("User");`;
 
-        // 显示 diff
-        await showTextDiff(textA, textB, '代码变更比较');
       }
 
       // debug_jupyter()
