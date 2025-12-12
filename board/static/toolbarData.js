@@ -29,6 +29,9 @@ const toolbarData = [
 
         { text: '测试1-打印nodes', class: 'edit', click: 'fg.print(fg.nodes)' },
 
+        { text: 'diff all', class: 'run', id: 'diff all', title: '显示源码与快照差异', click: 'fg.showAllDiff()' },
+        { text: 'diff history', class: 'run', id: 'diff history', title: '显示点击的文件与运行历史版本的差异', click: 'fg.showAllHistoryDiff(fg.currentCard.index)' },
+
     ],
     [
         { text: 'run ', class: 'primary', id: 'r', click: 'fg.toggleButton(btn);fg.toggleButton(btn.parentNode.parentNode.children[1-tindex].children[index]);fg.toggleMode();' },

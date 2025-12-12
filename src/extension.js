@@ -220,6 +220,25 @@ function activate(context) {
       fs.writeFileSync(nodesPath, JSON.stringify(fg.nodes, null, 4), { encoding: 'utf8' });
       runChain(message.targetIndex)
     },
+    showAllDiff(message) {
+      checkSource(fg.nodes.map((v, i) => i), true)
+    },
+    showAllHistoryDiff(message) {
+      let index = message.targetIndex
+      let ctx = fg.record[index]
+      if (!ctx || !ctx.filename) {
+        return
+      }
+      let content = fs.readFileSync(path.join(rootPath, ctx.filename), { encoding: 'utf8' })
+      let toShow = []
+      for (let i = record.history.length - 1; i >= 0; i--) {
+        let rctx = record.history[i]
+        if (rctx && rctx.content && rctx.filename == ctx.filename && rctx.content != content) {
+          if (!toShow.includes(rctx.content)) toShow.push(rctx.content)
+        }
+      }
+      if (toShow.length) showFilesDiff(toShow.map(v => [ctx.filename, v]), '与运行历史差异')
+    },
     clearSnapshot(message) {
       message.indexes.forEach(ii => delete fg.record[ii].snapshot)
       saveAndPushRecord()
@@ -360,9 +379,6 @@ function activate(context) {
     }
   }
   async function showFilesDiff(groups, title = '和快照变更比较') {
-    // 创建唯一的 URI
-    const timestamp = Date.now();
-    const randomId = Math.random().toString(36).substring(2, 15);
     // 创建内容提供者
     const provider = new DiffContentProvider();
     // 注册内容提供者（使用自定义的 scheme 'mydiff'）
@@ -371,6 +387,9 @@ function activate(context) {
       const uris = groups.map(v => {
         const [filename, oldcontent] = v
         const realfile = vscode.Uri.file(path.join(rootPath, filename))
+        // 创建唯一的 URI
+        const timestamp = Date.now();
+        const randomId = Math.random().toString(36).substring(2, 15);
         const leftUri = vscode.Uri.parse(`mydiff:${filename}-${timestamp}-${randomId}.txt`);
         provider.setContent(leftUri, oldcontent);
         return [realfile, leftUri, realfile]
@@ -393,7 +412,7 @@ function activate(context) {
    * @param {Array} indexes 
    * @returns 
    */
-  async function checkSource(indexes) {
+  async function checkSource(indexes, noRemove = false) {
     if (fg.config?.Snapshot?.noCheckSource) return
     // let diff = {}
     // 不一致时为 true
@@ -409,29 +428,31 @@ function activate(context) {
         return false
       }
     }))
-    // 待移除快照的indexes
-    let toRemove = indexes.filter((v, i) => failCheck[i])
-    while (toRemove.length) {
-      fg.findNodeForward(toRemove.shift(), (v, lines) => {
-        // 只接受next->previous的线
-        if (lines.filter(l => l.lsname == 'next' && l.lename == 'previous').length == 0) {
-          return false
-        }
-        return true
-      }).map(v => fg.nodes.indexOf(v)).forEach(ii => {
-        delete fg.record[ii]?.snapshot
-        if (toRemove.includes(ii)) {
-          toRemove.splice(toRemove.indexOf(ii), 1)
-        }
-      })
+    if (!noRemove) {
+      // 待移除快照的indexes
+      let toRemove = indexes.filter((v, i) => failCheck[i])
+      while (toRemove.length) {
+        fg.findNodeForward(toRemove.shift(), (v, lines) => {
+          // 只接受next->previous的线
+          if (lines.filter(l => l.lsname == 'next' && l.lename == 'previous').length == 0) {
+            return false
+          }
+          return true
+        }).map(v => fg.nodes.indexOf(v)).forEach(ii => {
+          delete fg.record[ii]?.snapshot
+          if (toRemove.includes(ii)) {
+            toRemove.splice(toRemove.indexOf(ii), 1)
+          }
+        })
+      }
     }
 
     if (fg.config?.Snapshot?.noShowCheckSourceDiff) return
-    toRemove = indexes.filter((v, i) => failCheck[i])
-    if (toRemove.length == 0) return
+    let toShow = indexes.filter((v, i) => failCheck[i])
+    if (toShow.length == 0) return
     // let textA = []
     // let textB = []
-    // toRemove.forEach(index => {
+    // toShow.forEach(index => {
     //   let ctx = fg.record[index]
     //   textA.push('#%% ' + ctx.filename + '\n')
     //   textB.push('#%% ' + ctx.filename + '\n')
@@ -442,7 +463,7 @@ function activate(context) {
     // })
     // await showTextDiff(textA.join('\n'), textB.join('\n'), '和快照变更比较');
 
-    await showFilesDiff(toRemove.map(index => [fg.record[index].filename, fg.record[index].content]))
+    await showFilesDiff(toShow.map(index => [fg.record[index].filename, fg.record[index].content]))
 
   }
 
@@ -482,7 +503,7 @@ function activate(context) {
     }
     let gorder = glevels.reduce((a, b) => a.concat(b))
 
-    await checkSource(gorder)
+    await checkSource(gorder, false)
 
     let torun = fg.findNodeBackward(targetIndex, (v, lines) => {
       let index = fg.nodes.indexOf(v)
@@ -688,14 +709,16 @@ function activate(context) {
   }
   async function runJupyter(fullname, rid, code) {
     await vscode.commands.executeCommand('vscode.openWith', vscode.Uri.file(fullname), 'jupyter-notebook')
+    await delay(200)
     await vscode.commands.executeCommand('notebook.focusBottom')
     await vscode.commands.executeCommand('notebook.cell.insertCodeCellBelow')
-    await delay(300)
+    await delay(400)
     const nbeditor = vscode.window.activeNotebookEditor;
     let editor = vscode.window.activeTextEditor;
     await editor.edit(edit => {
       edit.insert(editor.selection.active, '#rid:' + rid + '\n' + code);
     })
+    await delay(200)
     await vscode.commands.executeCommand('notebook.cell.execute')
     let robj = nbeditor.notebook.getCells().slice(-1)[0]
     robj = { outputs: robj.outputs, executionSummary: robj.executionSummary }
@@ -832,6 +855,24 @@ function activate(context) {
 
         const realfile1 = vscode.Uri.file('/home/zhaouv/e/git/github/data-flow-graph-node/demo/a.py')
         const realfile2 = vscode.Uri.file('/home/zhaouv/e/git/github/data-flow-graph-node/demo/b.py')
+
+        let toShow = [
+          "print('a') \na=999;import sys;print(f'123{a}321123');print(sys.argv)",
+          "print('fa') \na=999;import sys;print(f'123{a}321123');print(sys.argv)",
+          "print('ag') \na=999;import sys;print(f'123{a}321123');print(sys.argv)",
+        ]
+        const uris = toShow.map(v => {
+          const oldcontent = v
+          const filename = 'a.py'
+          const realfile = vscode.Uri.file(path.join('/home/zhaouv/e/git/github/data-flow-graph-node/demo/', filename))
+          // const realfile = realfile1
+          // 创建唯一的 URI
+          const timestamp = Date.now();
+          const randomId = Math.random().toString(36).substring(2, 15);
+          const leftUri = vscode.Uri.parse(`mydiff:${filename}-${timestamp}-${randomId}.txt`);
+          provider.setContent(leftUri, oldcontent);
+          return [realfile, leftUri, realfile]
+        })
         try {
           // January 2024 (version 1.86)
           // https://code.visualstudio.com/updates/v1_86#_review-multiple-files-in-diff-editor
@@ -839,12 +880,13 @@ function activate(context) {
           await vscode.commands.executeCommand(
             'vscode.changes',
             '代码审查变更集', // 整个多文件diff视图的标题
-            [
-              [rightUri, leftUri, rightUri],
-              [rightUri2, leftUri2, rightUri2],
-              [realfile1, leftUri, realfile1],
-              [realfile1, realfile2, realfile1],
-            ]
+            uris
+            // [
+            //   [rightUri, leftUri, rightUri],
+            //   [rightUri2, leftUri2, rightUri2],
+            //   [realfile1, leftUri, realfile1],
+            //   [realfile1, realfile2, realfile1],
+            // ]
           );
         } finally {
           // 清理：稍后注销提供者

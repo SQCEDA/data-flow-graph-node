@@ -329,10 +329,10 @@ export const fg = {
 
         return
     },
-    cleanContent(){
-        fg.nodes=[]
+    cleanContent() {
+        fg.nodes = []
         fg.buildLines()
-        contentElement.innerHTML=''
+        contentElement.innerHTML = ''
     },
     addContent(nodes) {
         nodes.forEach((node, index) => {
@@ -773,6 +773,12 @@ export const fg = {
     },
     runChain(index) {
         connectAPI.send({ command: 'runChain', nodes: fg.nodes, targetIndex: index })
+    },
+    showAllDiff() {
+        connectAPI.send({ command: 'showAllDiff' })
+    },
+    showAllHistoryDiff(index) {
+        connectAPI.send({ command: 'showAllHistoryDiff', targetIndex: index })
     },
     addResult(ctx) {
         let record = fg.record.filter(v => v.rid == ctx.rid)
