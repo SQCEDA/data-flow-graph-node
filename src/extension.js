@@ -672,7 +672,7 @@ function activate(context) {
             fs.writeFileSync(targetPath, '', { encoding: 'utf8' });
             await delay(100)
           }
-          const result = await runJupyter(targetPath, rid, content)
+          const result = await runJupyter(targetPath, rid, content, fullname)
           if (result.error) {
             throw new Error(result.error);
           } else {
@@ -720,7 +720,7 @@ function activate(context) {
   function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
-  async function runJupyter(fullname, rid, code) {
+  async function runJupyter(fullname, rid, code, sourcename = '') {
     await vscode.commands.executeCommand('vscode.openWith', vscode.Uri.file(fullname), 'jupyter-notebook')
     await delay(200)
     if (fg.mode.clearIpynb) {
@@ -739,7 +739,7 @@ function activate(context) {
     const nbeditor = vscode.window.activeNotebookEditor;
     let editor = vscode.window.activeTextEditor;
     await editor.edit(edit => {
-      edit.insert(editor.selection.active, '#rid:' + rid + '\n' + code);
+      edit.insert(editor.selection.active, '#rid:' + rid + '\n__file__ = r"'+sourcename+'"\n' + code);
     })
     await delay(200)
     await vscode.commands.executeCommand('notebook.cell.execute')

@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.1.8 2025-12-29
+
+vscode-jupyter模式把 `__file__` 变量覆盖成文件全路径添加到脚本前
+
 ## 0.1.7 2025-12-25
 
 fix: 运行模式vscode-jupyter下, ipynb文件不存在时先创建
