@@ -242,7 +242,7 @@ function activate(context) {
       if (toShow.length) showFilesDiff(toShow.map(v => [ctx.filename, v]), '与运行历史差异')
     },
     clearSnapshot(message) {
-      message.indexes.forEach(ii => delete fg.record[ii].snapshot)
+      message.indexes.forEach(ii => delete fg.record[ii]?.snapshot)
       saveAndPushRecord()
     },
     prompt(message) {
