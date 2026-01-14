@@ -2,7 +2,7 @@
 	"name": "data-flow-graph-node",
 	"displayName": "data-flow-graph-node",
 	"description": "数据流图节点工具. 用于数据处理和流程管理, 以vscode插件的形式提供, 以便于兼顾文本编辑以及通过web操作的流程图界面",
-	"version": "0.1.8",
+	"version": "0.1.9",
 	"publisher": "zhaouv",
 	"license": "none",
 	"repository": {

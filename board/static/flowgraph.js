@@ -814,7 +814,7 @@ export const fg = {
         record.forEach((ctx, index) => {
             if (fg.nodes[index].snapshot) {
 
-                contentElement.children[index].querySelector('snapshot').style.background = ctx.snapshot ? `rgb(${155 + ctx.snapshot % 100}, ${155 + 2 * ctx.snapshot % 100}, ${155 + 3 * ctx.snapshot % 100})` : ''
+                contentElement.children[index].querySelector('snapshot').style.background = ctx?.snapshot ? `rgb(${155 + ctx.snapshot % 100}, ${155 + 2 * ctx.snapshot % 100}, ${155 + 3 * ctx.snapshot % 100})` : ''
             }
         })
     },
