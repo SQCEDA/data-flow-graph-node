@@ -223,7 +223,7 @@ function activate(context) {
       runChain(message.targetIndex, message.clearIpynb, message.restartKernel)
     },
     showAllDiff(message) {
-      checkSource(fg.nodes.map((v, i) => i), true)
+      checkSource(fg.nodes.map((v, i) => i), true, false)
     },
     showAllHistoryDiff(message) {
       let index = message.targetIndex
@@ -382,7 +382,7 @@ function activate(context) {
       setTimeout(() => registration.dispose(), 1000);
     }
   }
-  async function showFilesDiff(groups, title = '和快照变更比较') {
+  async function showFilesDiff(groups, title) {
     // 创建内容提供者
     const provider = new DiffContentProvider();
     // 注册内容提供者（使用自定义的 scheme 'mydiff'）
@@ -414,9 +414,11 @@ function activate(context) {
   /**
    * 检查源代码和record的源代码的一致性
    * @param {Array} indexes 
+   * @param {Boolean} noRemove 不一致时是否移除快照. 界面点击时不移除, 运行链时移除
+   * @param {Boolean} clickToShow 是否需要再点击一次确认才弹出多文件diff
    * @returns 
    */
-  async function checkSource(indexes, noRemove = false) {
+  async function checkSource(indexes, noRemove = false, clickToShow = true) {
     if (fg.config?.Snapshot?.noCheckSource) return
     // let diff = {}
     // 不一致时为 true
@@ -467,7 +469,20 @@ function activate(context) {
     // })
     // await showTextDiff(textA.join('\n'), textB.join('\n'), '和快照变更比较');
 
-    await showFilesDiff(toShow.map(index => [fg.record[index].filename, fg.record[index].content]))
+    if (clickToShow) {
+      // 此处需要非阻塞, 弹个消息挂着就行, 不用await
+      let toShowCache = toShow.map(index => [fg.record[index].filename, fg.record[index].content]) // 此处需要捕获这个变量
+      vscode.window.showInformationMessage(
+        toShow.length + ' 个文件发生变动',
+        '查看'
+      ).then(result => {
+        if (result === '查看') {
+          showFilesDiff(toShowCache, '和运行前快照变更比较')
+        }
+      })
+    } else {
+      await showFilesDiff(toShow.map(index => [fg.record[index].filename, fg.record[index].content]), '和快照变更比较')
+    }
 
   }
 
@@ -510,7 +525,7 @@ function activate(context) {
     }
     let gorder = glevels.reduce((a, b) => a.concat(b))
 
-    await checkSource(gorder, false)
+    await checkSource(gorder, false, true)
 
     let torun = fg.findNodeBackward(targetIndex, (v, lines) => {
       let index = fg.nodes.indexOf(v)
@@ -739,7 +754,7 @@ function activate(context) {
     const nbeditor = vscode.window.activeNotebookEditor;
     let editor = vscode.window.activeTextEditor;
     await editor.edit(edit => {
-      edit.insert(editor.selection.active, '#rid:' + rid + '\n__file__ = r"'+sourcename+'"\n' + code);
+      edit.insert(editor.selection.active, '#rid:' + rid + '\n__file__ = r"' + sourcename + '"\n' + code);
     })
     await delay(200)
     await vscode.commands.executeCommand('notebook.cell.execute')
@@ -918,8 +933,29 @@ function activate(context) {
 
       }
 
+      async function debug_infoclick(params) {
+        const result = await vscode.window.showInformationMessage(
+          '你想要执行什么操作？',
+          '按钮1 - 执行操作A',
+          '按钮2 - 执行操作B',
+          '取消'
+        );
+
+        // 根据用户点击的按钮执行相应的函数
+        if (result === '按钮1 - 执行操作A') {
+          vscode.window.showInformationMessage('操作A');
+          // executeFunctionA();
+        } else if (result === '按钮2 - 执行操作B') {
+          // executeFunctionB();
+          vscode.window.showInformationMessage('操作B');
+        } else {
+          vscode.window.showInformationMessage('操作已取消');
+        }
+      }
+
       // debug_jupyter()
       // debug_diff()
+      // debug_infoclick()
 
       initProject()
 
