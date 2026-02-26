@@ -5,6 +5,7 @@ const fs = require("fs");
 const { spawnSync } = require('child_process');
 
 const post = require('./post').postAsync;
+const getSha1AndBase64 = require('./getSha1AndBase64').getSha1AndBase64;
 const { toolbarData } = require('../board/static/toolbarData.js');
 const { blockPrototype } = require('../board/static/blockPrototype.js');
 const { Runtype } = require('../board/static/Runtype.js');
@@ -34,10 +35,6 @@ function getRandomString() {
   return text;
 }
 const getNonce = getRandomString;
-
-function foldingMod() {
-  return vscode.workspace.getConfiguration('flowgraph')['auto-folding']
-}
 
 function loadWebviewFiles(root) {
   let main = fs.readFileSync(path.join(root, 'board', 'index.html'), { encoding: 'utf8' })
@@ -71,13 +68,14 @@ function activate(context) {
   let showTextPanel = undefined
   // let webviewState = {}
   let rootPath = undefined
-  let fgPathObj = undefined // key:path
+  let fgProject = undefined // key:path
   // config 不需要通过插件修改
   let nodesPath = undefined
   let recordPath = undefined
   let record = undefined // record.current是fg.record
 
   let fg = {
+    rawConfig: undefined,
     config: undefined,
     nodes: undefined,
     record: undefined,
@@ -241,6 +239,108 @@ function activate(context) {
       }
       if (toShow.length) showFilesDiff(toShow.map(v => [ctx.filename, v]), '与运行历史差异')
     },
+    release(message) {
+      let url = vscode.workspace.getConfiguration('flowgraph')['release-server-url']
+      let author = vscode.workspace.getConfiguration('flowgraph')['release-server-author']
+      let giturl = fgProject.giturl
+      let owner = fgProject.owner
+      let projectname = fgProject.projectname
+      if (!url || !author || !giturl || !owner || !projectname) {
+        vscode.window.showErrorMessage('Missing required configuration for release');
+        return;
+      }
+
+      vscode.window.showInformationMessage(
+        '选择要执行的行动',
+        'push',
+        'pull cover',
+        'pull merge',
+      ).then(action => {
+        const result = spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8', cwd: rootPath });
+        var githash = 'hash1'
+        // display.push(JSON.stringify(result))
+        if (result.status === 0) {
+          githash = result.stdout.toString().trim()
+        } else {
+          var errorMsg = result.stderr.toString();
+          vscode.window.showErrorMessage('调取 git rev-parse HEAD 时发生错误: ' + errorMsg);
+          throw new Error(errorMsg);
+        }
+        vscode.window.showInputBox({
+          prompt: 'githash',
+          // ignoreFocusOut: true, // 设为true可防止点击编辑器其他区域时输入框关闭
+          value: githash, // 可设置默认值
+          // valueSelection: [0, 6] // 可预设选中部分默认文本，例如选中"default"
+        }).then(userInput => {
+          if (userInput == null) return;
+          // vscode.window.showInformationMessage(action+','+userInput)
+          if (action === 'push') {
+            buildReleasePayload(githash).then(async ({ filehashmap, filePayload, projectfile }) => {
+              let log = []
+              const server = url.replace(/\/$/, '')
+              log.push('release push step1 ready. files: ' + Object.keys(filehashmap).length)
+
+              // step2 /checkFile 得到缺失 hash
+              let missing = []
+              try {
+                const allHashes = Object.values(filehashmap)
+                const ret = await post(server + '/checkFile', allHashes)
+                const existed = new Set(ret?.hashes || [])
+                missing = allHashes.filter(h => !existed.has(h))
+                log.push('step2 checkFile missing: ' + missing.length + ', existed: ' + existed.size)
+              } catch (error) {
+                throw new Error('checkFile 失败: ' + error.message)
+              }
+
+              // step3 /submitFile 上传缺失文件
+              if (missing.length) {
+                const payload = {}
+                missing.forEach(h => {
+                  if (filePayload[h]) payload[h] = filePayload[h]
+                })
+                try {
+                  await post(server + '/submitFile', payload)
+                  log.push('step3 submitFile done: ' + Object.keys(payload).length)
+                } catch (error) {
+                  throw new Error('submitFile 失败: ' + error.message)
+                }
+              } else {
+                log.push('step3 skip submitFile, all exists')
+              }
+
+              // step4 /submitRelease 提交元数据
+              try {
+                const body = {
+                  githash: userInput.trim(),
+                  projectname,
+                  owner,
+                  author,
+                  filehashmap,
+                  projectfile,
+                  time: new Date().toISOString(),
+                }
+                const ret = await post(server + '/submitRelease', body)
+                if (ret?.files && ret.files.length) {
+                  throw new Error('submitRelease 缺失文件: ' + ret.files.join(','))
+                }
+                log.push('step4 submitRelease done, count: ' + (ret?.count ?? 0))
+                vscode.window.showInformationMessage('release push 完成')
+              } catch (error) {
+                throw new Error('submitRelease 失败: ' + error.message)
+              }
+
+              showText(log.join('\n'))
+            }).catch(err => {
+              vscode.window.showErrorMessage('release push failed: ' + err.message)
+            })
+          } else if (action === 'pull cover') {
+
+          } else if (action === 'pull merge') {
+
+          }
+        });
+      })
+    },
     clearSnapshot(message) {
       message.indexes.forEach(ii => delete fg.record[ii]?.snapshot)
       saveAndPushRecord()
@@ -261,6 +361,78 @@ function activate(context) {
     default(message) {
       console.log('unknown message:', message)
     }
+  }
+
+  /**
+   * 构造 release push 所需的文件与元数据
+   * @param {string} githash 
+   * @returns {Promise<{filehashmap:Object,filePayload:Object,projectfile:Object}>}
+   */
+  async function buildReleasePayload(githash) {
+    if (!rootPath || !fgProject) throw new Error('missing flowgraph context')
+
+    let filenamesMap = {}
+    if (fgProject.filenames) {
+      const filenamesPath = path.join(rootPath, fgProject.filenames)
+      if (fs.existsSync(filenamesPath)) {
+        try {
+          filenamesMap = JSON.parse(fs.readFileSync(filenamesPath, { encoding: 'utf8' })) || {}
+        } catch (error) {
+          throw new Error('filenames 文件解析失败: ' + error.message)
+        }
+      }
+    }
+
+    // projectfile: 四个工程 JSON，record.history 按计划置空
+    let flowContent = fgProject
+    let configContent = fg.rawConfig
+    let nodesContent = fg.nodes
+    let recordContent = JSON.parse(recordDefault)
+    recordContent.current = fg.record
+    const projectfile = {
+      flowgraph: flowContent,
+      config: configContent,
+      nodes: nodesContent,
+      record: recordContent,
+      githash, // 此处的githash强制是来自命令行结果的, 用户可以修改的那个当作是标识id, 只是默认值取githash
+    }
+
+    // 收集需要上传的文件 -> filehashmap[path]=hash, filePayload[hash]=base64
+    const filehashmap = {}
+    const filePayload = {}
+    const collected = new Set()
+
+    async function addFile(relpath) {
+      if (!relpath) return
+      if (collected.has(relpath)) return
+      const full = path.join(rootPath, relpath)
+      if (!fs.existsSync(full)) {
+        throw new Error('文件不存在: ' + relpath)
+      }
+      const [hash, b64] = await getSha1AndBase64(full)
+      filehashmap[relpath] = hash
+      filePayload[hash] = b64
+      collected.add(relpath)
+    }
+
+    async function addByList(list) {
+      if (!list) return
+      if (!Array.isArray(list)) list = [list]
+      for (const rel of list) await addFile(rel)
+    }
+
+    for (let i = 0; i < fg.nodes.length; i++) {
+      const ctx = fg.record[i]
+      if (!ctx || !ctx.snapshot) continue
+      const node = fg.nodes[i]
+      await addByList(node.filename)
+      if (node.submitfile) await addByList(node.submitfile)
+      if (node.filename && filenamesMap[node.filename]) {
+        await addByList(filenamesMap[node.filename])
+      }
+    }
+
+    return { filehashmap, filePayload, projectfile }
   }
 
   function showText(text) {
@@ -296,27 +468,27 @@ function activate(context) {
     rootPath = path.dirname(activeTextEditor.document.fileName)
     currentEditor = activeTextEditor;
     try {
-      fgPathObj = JSON.parse(activeTextEditor.document.getText())
+      fgProject = JSON.parse(activeTextEditor.document.getText())
 
-      let configPath = path.join(rootPath, fgPathObj.config)
+      let configPath = path.join(rootPath, fgProject.config)
       if (!fs.existsSync(configPath)) {
-        configPath = fgPathObj.config
+        configPath = fgProject.config
         if (!!fs.existsSync(configPath)) {
           vscode.window.showErrorMessage('配置文件不存在');
           return '';
         }
       }
-      fg.config = JSON.parse(fs.readFileSync(configPath, { encoding: 'utf8' }))
-      fg.config = Object.assign({}, defaultConfig, fg.config)
+      fg.rawConfig = JSON.parse(fs.readFileSync(configPath, { encoding: 'utf8' }))
+      fg.config = Object.assign({}, defaultConfig, fg.rawConfig)
 
-      nodesPath = path.join(rootPath, fgPathObj.nodes)
+      nodesPath = path.join(rootPath, fgProject.nodes)
       if (!fs.existsSync(nodesPath)) {
         vscode.window.showErrorMessage('节点文件不存在');
         return '';
       }
       fg.nodes = JSON.parse(fs.readFileSync(nodesPath, { encoding: 'utf8' }))
 
-      recordPath = path.join(rootPath, fgPathObj.record)
+      recordPath = path.join(rootPath, fgProject.record)
       if (!fs.existsSync(recordPath)) {
         fs.writeFileSync(recordPath, recordDefault, { encoding: 'utf8' });
         record = JSON.parse(recordDefault)
@@ -834,7 +1006,7 @@ function activate(context) {
         let dirname = path.dirname(userInput)
         let basename = path.basename(userInput)
         let prefix = path.join(dirname, basename)
-        fs.writeFileSync(prefix + '.flowgraph.json', `{"config": "${basename}.config.json","nodes": "${basename}.nodes.json","record": "${basename}.record.json"}`, { encoding: 'utf8' });
+        fs.writeFileSync(prefix + '.flowgraph.json', `{"config": "${basename}.config.json","nodes": "${basename}.nodes.json","record": "${basename}.record.json","giturl": "http://xx/xx.git","project": "path/to/${basename}.flowgraph.json","owner": "user0","projectname": "${basename}"}`, { encoding: 'utf8' });
         fs.writeFileSync(prefix + '.config.json', JSON.stringify(templateConfig, null, 4), { encoding: 'utf8' });
         fs.writeFileSync(prefix + '.nodes.json', JSON.stringify([{
           "text": "new",

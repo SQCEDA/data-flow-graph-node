@@ -1,5 +1,16 @@
 ## 一些实现记录
 
+按钮release 右下角弹出三个按钮
+push release
+pull release (cover)
+pull release (merge)
+-> 弹出一个输入框默认是当前的githash, 可以改. 也起到一个二次确认的作用
+变量约定
+x.flowgraph.json: giturl filenames owner projectname 其中filenames约定一些特殊kv对放类似于cache.json用来merge
+settings.json: gitexe author release-server-url
+
+
+
 _pos记录位置
 
 内部计算使用邻接表

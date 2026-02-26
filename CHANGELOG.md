@@ -1,5 +1,7 @@
 # Change Log
 
+release服务器相关功能
+
 ## 0.1.11 2026-01-28
 
 > vscode-jupyter模式把 `__file__` 变量覆盖成文件全路径添加到脚本前  

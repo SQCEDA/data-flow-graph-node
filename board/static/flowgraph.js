@@ -780,6 +780,9 @@ export const fg = {
     showAllHistoryDiff(index) {
         connectAPI.send({ command: 'showAllHistoryDiff', targetIndex: index })
     },
+    release() {
+        connectAPI.send({ command: 'release' })
+    },
     addResult(ctx) {
         let record = fg.record.filter(v => v.rid == ctx.rid)
         if (record.length) {

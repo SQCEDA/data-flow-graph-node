@@ -33,3 +33,10 @@ F1调出命令面板敲`init`找到`Flow Graph - initProject`初始化一个工�
 + 指向
 + 位置和大小 
 
+## release
+
+把快照缓存报告等从release服务器发布或拉取
+
+需在设置中配置 release-server-url 和 release-server-author  
+在工程文件 xxx.flowgraph.json 配置 giturl project owner projectname  
+

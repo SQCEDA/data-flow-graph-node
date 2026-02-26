@@ -50,15 +50,15 @@
 			"type": "object",
 			"title": "Flow Graph",
 			"properties": {
-				"flowgraph.auto-folding": {
-					"type": "boolean",
-					"default": true,
-					"description": "use auto-folding moding, wrap inline svg with region"
-				},
-				"flowgraph.directory": {
+				"flowgraph.release-server-url": {
 					"type": "string",
-					"default": "",
-					"description": "SVG saving directory"
+					"default": "http://127.0.0.1:13496",
+					"description": "server url, example: http://127.0.0.1:13496"
+				},
+				"flowgraph.release-server-author": {
+					"type": "string",
+					"default": "user0",
+					"description": "server author, example: user1"
 				}
 			}
 		}

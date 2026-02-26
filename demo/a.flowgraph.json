@@ -1,5 +1,9 @@
 {
     "config": "flowgraph.config.json",
     "nodes": "a.nodes.json",
-    "record": "a.record.json"
+    "record": "a.record.json",
+    "giturl": "https://github.com/zhaouv/data-flow-graph-node.git",
+    "project": "demo/a.flowgraph.json",
+    "owner": "zhaouv",
+    "projectname": "a"
 }

@@ -64,6 +64,7 @@ const toolbarData = [
         { text: '运行链', class: 'run', id: 'run chain', click: 'fg.runChain(fg.currentCard.index)' },
         { text: '运行', class: 'run', id: 'run', click: 'fg.runNodes([fg.currentCard.index])' },
         { text: '结果', class: 'run', id: 'result', click: 'fg.showResult(fg.currentCard.index)' },
+        { text: 'release', class: 'run', id: 'release', click: 'fg.release()' },
 
         { text: '测试2-打印config', class: 'edit', click: 'fg.print(fg.config)' },
         { text: '测试3-打印fg', class: 'edit', click: 'fg.print(fg)' },
