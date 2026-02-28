@@ -16,6 +16,8 @@ export const connectAPI = {
     readSVGFile:'connectAPI.setSVGContent(message.content)',
   },
   isDebug: true,
+  isVscodeWebview: false,
+  isDFGSIframe: false,
   content: "",
   nonce: () => globalThis.vscodeNonce(),
   /**
@@ -128,6 +130,29 @@ globalThis.addEventListener('message', event => {
     connectAPI.recieve.prompt='connectAPI._prompt_cb(message.content);'
     // vscode.postMessage({ command: 'requestCustom' })
     connectAPI.isDebug=false
+    connectAPI.isVscodeWebview=true
+  } else if (window.location.search.includes('fromdfgsiframe')) {
+    console.log('Running in DFGS iframe');
+    // 从iframe向父网页发送消息
+    connectAPI.send = (x) => {
+      window.parent.postMessage(x, '*');
+    }
+    connectAPI.info = (text) => {
+      window.parent.postMessage({
+        text,
+        command: 'showInfo',
+      }, '*');
+    }
+    connectAPI.prompt = (show,text,cb)=>{
+      connectAPI._prompt_cb=cb
+      window.parent.postMessage({
+        show,text,
+        command: 'prompt',
+      }, '*');
+    }
+    connectAPI.recieve.prompt='connectAPI._prompt_cb(message.content);'
+    connectAPI.isDebug=false
+    connectAPI.isDFGSIframe=true
   } else {
     // local test
   }

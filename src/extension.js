@@ -385,7 +385,8 @@ function activate(context) {
 
     // projectfile: 四个工程 JSON，record.history 按计划置空
     let flowContent = fgProject
-    let configContent = fg.rawConfig
+    // let configContent = fg.rawConfig
+    let configContent = fg.config
     let nodesContent = fg.nodes
     let recordContent = JSON.parse(recordDefault)
     recordContent.current = fg.record
