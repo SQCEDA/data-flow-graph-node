@@ -6,53 +6,16 @@ const { spawnSync } = require('child_process');
 
 const post = require('./post').postAsync;
 const getSha1AndBase64 = require('./getSha1AndBase64').getSha1AndBase64;
-const { toolbarData } = require('../board/static/toolbarData.js');
-const { blockPrototype } = require('../board/static/blockPrototype.js');
-const { Runtype } = require('../board/static/Runtype.js');
-const { keymap } = require('../board/static/keymap.js');
-const { BaseConfig } = require('../board/static/BaseConfig.js');
 const { levelTopologicalSort } = require('../board/static/levelTopologicalSort.js');
 
-const defaultConfig = Object.assign({}, BaseConfig, {
-  toolbarData: toolbarData,
-  blockPrototype: blockPrototype,
-  Runtype: Runtype,
-  keymap: keymap,
-})
+const { defaultConfig, templateConfig } = require('./fgConfig.js');
+const { loadWebviewFiles, getWebviewContent } = require('./webviewLoader.js');
+const { recordDefault, getRandomString, createFgModel } = require('./fgModel.js');
+const { DiffContentProvider, createDiffUtils } = require('./diffUtils.js');
+const { buildReleasePayload } = require('./release.js');
+const { createRunners } = require('./runners.js');
+const { createMessageHandlers } = require('./messageHandlers.js');
 
-const templateConfig = Object.assign({}, BaseConfig, {
-  Runtype: Runtype,
-})
-
-const recordDefault = '{"current":[],"history":[],"drop":[],"concat":{}}'
-
-function getRandomString() {
-  let text = '';
-  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  for (let i = 0; i < 32; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
-  return text;
-}
-const getNonce = getRandomString;
-
-function loadWebviewFiles(root) {
-  let main = fs.readFileSync(path.join(root, 'board', 'index.html'), { encoding: 'utf8' })
-  main = main.replace(/<[^\n]*"\.\/inject\/[^\n]*>/g, s => {
-    let m = /"\.\/inject\/(.*?\.)(.*?)"/.exec(s)
-    let content = fs.readFileSync(path.join(root, 'board', 'inject', m[1] + m[2]), { encoding: 'utf8' })
-    switch (m[2]) {
-      case 'css':
-        return '<style>\n' + content + '\n</style>'
-      case 'js':
-        return '<script type="module" crossorigin nonce="ToBeReplacedByRandomToken">\n' + content + '\n</script>'
-      default:
-        return s
-    }
-  })
-  main = main.replace(/ToBeReplacedByRandomToken/g, getNonce())
-  return main
-}
 const webviewContent = loadWebviewFiles(path.join(__dirname, '..'));
 
 /** @param {vscode.ExtensionContext} context */
@@ -74,367 +37,18 @@ function activate(context) {
   let recordPath = undefined
   let record = undefined // record.current是fg.record
 
-  let fg = {
-    rawConfig: undefined,
-    config: undefined,
-    nodes: undefined,
-    record: undefined,
-    mode: { restartKernel: undefined, clearIpynb: undefined },
-    // 模仿webview中的fg的部分特性
-    getRandomString() {
-      return getRandomString();
-    },
-    addLine(lsindex, leindex, lsname, lename) {
-      fg.link[lsindex][leindex].push({
-        lsname,
-        lename,
-      })
-    },
-    buildLines() {
-      fg.link = fg.nodes.map(v => fg.nodes.map(vv => []))
-      fg.nodes.forEach((v, lsindex) => {
-        if (v._linkTo) for (let lsname in v._linkTo) {
-          for (let deltai in v._linkTo[lsname]) {
-            let lename = v._linkTo[lsname][deltai]
-            let leindex = lsindex + ~~deltai
-            if (leindex >= 0 && leindex < fg.nodes.length) {
-              fg.addLine(lsindex, leindex, lsname, lename)
-            }
-          }
-        }
-      })
-    },
-    findNodeBackward(index, filterFunc) {
-      // 如果无环,结果是拓扑序
-      if (filterFunc == null) filterFunc = () => true
-      let nodes = [] // just for hash
-      let ret = []
-      function getnodes(v) {
-        nodes.push(v)
-        let leindex = fg.nodes.indexOf(v)
-        for (let lsindex = 0; lsindex < fg.nodes.length; lsindex++) {
-          if (fg.link[lsindex][leindex].length) {
-            let vv = fg.nodes[lsindex]
-            if (nodes.indexOf(vv) === -1 && filterFunc(vv, fg.link[lsindex][leindex])) {
-              getnodes(vv)
-            }
-          }
-        }
-        ret.push(v)
-      }
-      getnodes(fg.nodes[index])
-      return ret
-    },
-    findNodeForward(index, filterFunc) {
-      // 如果无环,结果是拓扑序
-      if (filterFunc == null) filterFunc = () => true
-      let nodes = []
-      function getnodes(v) {
-        nodes.push(v)
-        let lsindex = fg.nodes.indexOf(v)
-        for (let leindex = 0; leindex < fg.nodes.length; leindex++) {
-          if (fg.link[lsindex][leindex].length) {
-            let vv = fg.nodes[leindex]
-            if (nodes.indexOf(vv) === -1 && filterFunc(vv, fg.link[lsindex][leindex])) {
-              getnodes(vv)
-            }
-          }
-        }
-      }
-      getnodes(fg.nodes[index])
-      return nodes
-    },
-    runNodes(indexes, display) {
-      let files = indexes.map(index => {
-        let node = fg.nodes[index]
-        let rid = fg.getRandomString()
-        let submitTick = new Date().getTime()
-        let runtype = node.runtype ? node.runtype[0] : ''
-        let rconfig = fg.config.Runtype[runtype]
-        let filename = Array.isArray(node.filename) ? node.filename[0] : node.filename
-        let snapshotid = 'head'
-        for (let si = 0; si < fg.nodes.length; si++) {
-          if (fg.link[si][index].filter(l => l.lsname == 'next' && l.lename == 'previous').length) {
-            snapshotid = si
-            break
-          }
-        }
+  let fg = createFgModel()
 
-        let ret = { rid, index, snapshotid, rconfig, filename, submitTick }
-        if (node.condition) {
-          ret.condition = node.condition
-          ret.dropid = index + ~~Object.keys(node._linkTo.drop)[0]
-          if (node.maxCount) ret.maxCount = ~~node.maxCount
-        }
-        fg.record[index] = ret
-        return ret
-      })
-      return runFiles(files, display)
-    },
-  }
+  const { showTextDiff, showFilesDiff } = createDiffUtils({
+    Uri: vscode.Uri,
+    ViewColumn: vscode.ViewColumn,
+    workspace: vscode.workspace,
+    commands: vscode.commands,
+  })
 
-  let recieveMessage = {
-    showFile(message) {
-      let filename = path.join(rootPath, message.filename)
-      // vscode.workspace.rootPath+'/'+message.filename
-      if (!fs.existsSync(filename)) {
-        fs.writeFileSync(filename, '', { encoding: 'utf8' });
-      }
-      vscode.window.showTextDocument(
-        vscode.Uri.file(filename),
-        {
-          viewColumn: vscode.ViewColumn.One,
-          preserveFocus: true
-        }
-      )
-    },
-    showText(message) {
-      showText(message.text)
-    },
-    showInfo(message) {
-      vscode.window.showInformationMessage(message.text)
-    },
-    requestConfig(message) {
-      currentPanel.webview.postMessage({ command: 'config', content: fg.config });
-    },
-    requestNodes(message) {
-      currentPanel.webview.postMessage({ command: 'nodes', content: fg.nodes });
-    },
-    saveNodes(message) {
-      fg.nodes = message.nodes
-      fg.buildLines()
-      fs.writeFileSync(nodesPath, JSON.stringify(fg.nodes, null, 4), { encoding: 'utf8' });
-    },
-    requestRecord(message) {
-      currentPanel.webview.postMessage({ command: 'record', content: fg.record });
-    },
-    runNodes(message) {
-      fg.nodes = message.nodes
-      fg.buildLines()
-      fs.writeFileSync(nodesPath, JSON.stringify(fg.nodes, null, 4), { encoding: 'utf8' });
-      fg.runNodes(message.indexes)
-    },
-    runChain(message) {
-      fg.nodes = message.nodes
-      fg.buildLines()
-      fs.writeFileSync(nodesPath, JSON.stringify(fg.nodes, null, 4), { encoding: 'utf8' });
-      runChain(message.targetIndex, message.clearIpynb, message.restartKernel)
-    },
-    showAllDiff(message) {
-      checkSource(fg.nodes.map((v, i) => i), true, false)
-    },
-    showAllHistoryDiff(message) {
-      let index = message.targetIndex
-      let ctx = fg.record[index]
-      if (!ctx || !ctx.filename) {
-        return
-      }
-      let content = fs.readFileSync(path.join(rootPath, ctx.filename), { encoding: 'utf8' })
-      let toShow = []
-      for (let i = record.history.length - 1; i >= 0; i--) {
-        let rctx = record.history[i]
-        if (rctx && rctx.content && rctx.filename == ctx.filename && rctx.content != content) {
-          if (!toShow.includes(rctx.content)) toShow.push(rctx.content)
-        }
-      }
-      if (toShow.length) showFilesDiff(toShow.map(v => [ctx.filename, v]), '与运行历史差异')
-    },
-    release(message) {
-      let url = vscode.workspace.getConfiguration('flowgraph')['release-server-url']
-      let author = vscode.workspace.getConfiguration('flowgraph')['release-server-author']
-      let giturl = fgProject.giturl
-      let owner = fgProject.owner
-      let projectname = fgProject.projectname
-      if (!url || !author || !giturl || !owner || !projectname) {
-        vscode.window.showErrorMessage('Missing required configuration for release');
-        return;
-      }
+  let runFiles, runChain, checkSource
 
-      vscode.window.showInformationMessage(
-        '选择要执行的行动',
-        'push',
-        'pull cover',
-        'pull merge',
-      ).then(action => {
-        const result = spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8', cwd: rootPath });
-        var githash = 'hash1'
-        // display.push(JSON.stringify(result))
-        if (result.status === 0) {
-          githash = result.stdout.toString().trim()
-        } else {
-          var errorMsg = result.stderr.toString();
-          vscode.window.showErrorMessage('调取 git rev-parse HEAD 时发生错误: ' + errorMsg);
-          throw new Error(errorMsg);
-        }
-        vscode.window.showInputBox({
-          prompt: 'githash',
-          // ignoreFocusOut: true, // 设为true可防止点击编辑器其他区域时输入框关闭
-          value: githash, // 可设置默认值
-          // valueSelection: [0, 6] // 可预设选中部分默认文本，例如选中"default"
-        }).then(userInput => {
-          if (userInput == null) return;
-          // vscode.window.showInformationMessage(action+','+userInput)
-          if (action === 'push') {
-            buildReleasePayload(githash).then(async ({ filehashmap, filePayload, projectfile }) => {
-              let log = []
-              const server = url.replace(/\/$/, '')
-              log.push('release push step1 ready. files: ' + Object.keys(filehashmap).length)
-
-              // step2 /checkFile 得到缺失 hash
-              let missing = []
-              try {
-                const allHashes = Object.values(filehashmap)
-                const ret = await post(server + '/checkFile', allHashes)
-                const existed = new Set(ret?.hashes || [])
-                missing = allHashes.filter(h => !existed.has(h))
-                log.push('step2 checkFile missing: ' + missing.length + ', existed: ' + existed.size)
-              } catch (error) {
-                throw new Error('checkFile 失败: ' + error.message)
-              }
-
-              // step3 /submitFile 上传缺失文件
-              if (missing.length) {
-                const payload = {}
-                missing.forEach(h => {
-                  if (filePayload[h]) payload[h] = filePayload[h]
-                })
-                try {
-                  await post(server + '/submitFile', payload)
-                  log.push('step3 submitFile done: ' + Object.keys(payload).length)
-                } catch (error) {
-                  throw new Error('submitFile 失败: ' + error.message)
-                }
-              } else {
-                log.push('step3 skip submitFile, all exists')
-              }
-
-              // step4 /submitRelease 提交元数据
-              try {
-                const body = {
-                  githash: userInput.trim(),
-                  projectname,
-                  owner,
-                  author,
-                  filehashmap,
-                  projectfile,
-                  time: new Date().toISOString(),
-                }
-                const ret = await post(server + '/submitRelease', body)
-                if (ret?.files && ret.files.length) {
-                  throw new Error('submitRelease 缺失文件: ' + ret.files.join(','))
-                }
-                log.push('step4 submitRelease done, count: ' + (ret?.count ?? 0))
-                vscode.window.showInformationMessage('release push 完成')
-              } catch (error) {
-                throw new Error('submitRelease 失败: ' + error.message)
-              }
-
-              showText(log.join('\n'))
-            }).catch(err => {
-              vscode.window.showErrorMessage('release push failed: ' + err.message)
-            })
-          } else if (action === 'pull cover') {
-
-          } else if (action === 'pull merge') {
-
-          }
-        });
-      })
-    },
-    clearSnapshot(message) {
-      message.indexes.forEach(ii => delete fg.record[ii]?.snapshot)
-      saveAndPushRecord()
-    },
-    prompt(message) {
-      vscode.window.showInputBox({
-        prompt: message.show,
-        // ignoreFocusOut: true, // 设为true可防止点击编辑器其他区域时输入框关闭
-        value: message.text, // 可设置默认值
-        // valueSelection: [0, 6] // 可预设选中部分默认文本，例如选中"default"
-      }).then(userInput => {
-        currentPanel.webview.postMessage({ command: 'prompt', content: userInput });
-      });
-    },
-    requestCustom(message) {
-      currentPanel.webview.postMessage({ command: 'custom', content: { operate: [] } });
-    },
-    default(message) {
-      console.log('unknown message:', message)
-    }
-  }
-
-  /**
-   * 构造 release push 所需的文件与元数据
-   * @param {string} githash 
-   * @returns {Promise<{filehashmap:Object,filePayload:Object,projectfile:Object}>}
-   */
-  async function buildReleasePayload(githash) {
-    if (!rootPath || !fgProject) throw new Error('missing flowgraph context')
-
-    let filenamesMap = {}
-    if (fgProject.filenames) {
-      const filenamesPath = path.join(rootPath, fgProject.filenames)
-      if (fs.existsSync(filenamesPath)) {
-        try {
-          filenamesMap = JSON.parse(fs.readFileSync(filenamesPath, { encoding: 'utf8' })) || {}
-        } catch (error) {
-          throw new Error('filenames 文件解析失败: ' + error.message)
-        }
-      }
-    }
-
-    // projectfile: 四个工程 JSON，record.history 按计划置空
-    let flowContent = fgProject
-    // let configContent = fg.rawConfig
-    let configContent = fg.config
-    let nodesContent = fg.nodes
-    let recordContent = JSON.parse(recordDefault)
-    recordContent.current = fg.record
-    const projectfile = {
-      flowgraph: flowContent,
-      config: configContent,
-      nodes: nodesContent,
-      record: recordContent,
-      githash, // 此处的githash强制是来自命令行结果的, 用户可以修改的那个当作是标识id, 只是默认值取githash
-    }
-
-    // 收集需要上传的文件 -> filehashmap[path]=hash, filePayload[hash]=base64
-    const filehashmap = {}
-    const filePayload = {}
-    const collected = new Set()
-
-    async function addFile(relpath) {
-      if (!relpath) return
-      if (collected.has(relpath)) return
-      const full = path.join(rootPath, relpath)
-      if (!fs.existsSync(full)) {
-        throw new Error('文件不存在: ' + relpath)
-      }
-      const [hash, b64] = await getSha1AndBase64(full)
-      filehashmap[relpath] = hash
-      filePayload[hash] = b64
-      collected.add(relpath)
-    }
-
-    async function addByList(list) {
-      if (!list) return
-      if (!Array.isArray(list)) list = [list]
-      for (const rel of list) await addFile(rel)
-    }
-
-    for (let i = 0; i < fg.nodes.length; i++) {
-      const ctx = fg.record[i]
-      if (!ctx || !ctx.snapshot) continue
-      const node = fg.nodes[i]
-      await addByList(node.filename)
-      if (node.submitfile) await addByList(node.submitfile)
-      if (node.filename && filenamesMap[node.filename]) {
-        await addByList(filenamesMap[node.filename])
-      }
-    }
-
-    return { filehashmap, filePayload, projectfile }
-  }
+  let recieveMessage = {}
 
   function showText(text) {
     if (showTextPanel == undefined || showTextPanel.isClosed) {
@@ -514,151 +128,6 @@ function activate(context) {
     return activeTextEditor.document.fileName
   }
 
-  class DiffContentProvider {
-    constructor() {
-      this.contentMap = new Map();
-    }
-    provideTextDocumentContent(uri) {
-      return this.contentMap.get(uri.toString()) || '';
-    }
-    setContent(uri, content) {
-      this.contentMap.set(uri.toString(), content);
-    }
-  }
-  async function showTextDiff(textA, textB, title = '文本比较') {
-    // 创建唯一的 URI
-    const timestamp = Date.now();
-    const randomId = Math.random().toString(36).substring(2, 15);
-    const leftUri = vscode.Uri.parse(`mydiff:left-${timestamp}-${randomId}.txt`);
-    const rightUri = vscode.Uri.parse(`mydiff:right-${timestamp}-${randomId}.txt`);
-    // 创建内容提供者
-    const provider = new DiffContentProvider();
-    // 注册内容提供者（使用自定义的 scheme 'mydiff'）
-    const registration = vscode.workspace.registerTextDocumentContentProvider('mydiff', provider);
-    // 设置内容
-    provider.setContent(leftUri, textA);
-    provider.setContent(rightUri, textB);
-    try {
-      // 打开 diff 视图
-      await vscode.commands.executeCommand(
-        'vscode.diff',
-        leftUri,
-        rightUri,
-        title,
-        {
-          preview: false,  // 不在预览模式打开
-          viewColumn: vscode.ViewColumn.Two
-        }
-      );
-    } finally {
-      // 清理：稍后注销提供者
-      setTimeout(() => registration.dispose(), 1000);
-    }
-  }
-  async function showFilesDiff(groups, title) {
-    // 创建内容提供者
-    const provider = new DiffContentProvider();
-    // 注册内容提供者（使用自定义的 scheme 'mydiff'）
-    const registration = vscode.workspace.registerTextDocumentContentProvider('mydiff', provider);
-    try {
-      const uris = groups.map(v => {
-        const [filename, oldcontent] = v
-        const realfile = vscode.Uri.file(path.join(rootPath, filename))
-        // 创建唯一的 URI
-        const timestamp = Date.now();
-        const randomId = Math.random().toString(36).substring(2, 15);
-        const leftUri = vscode.Uri.parse(`mydiff:${filename}-${timestamp}-${randomId}.txt`);
-        provider.setContent(leftUri, oldcontent);
-        return [realfile, leftUri, realfile]
-      })
-      // January 2024 (version 1.86)
-      // https://code.visualstudio.com/updates/v1_86#_review-multiple-files-in-diff-editor
-      // 打开 diff 视图
-      await vscode.commands.executeCommand(
-        'vscode.changes',
-        title, // 整个多文件diff视图的标题
-        uris
-      );
-    } finally {
-      // 清理：稍后注销提供者
-      setTimeout(() => registration.dispose(), 1000);
-    }
-  }
-  /**
-   * 检查源代码和record的源代码的一致性
-   * @param {Array} indexes 
-   * @param {Boolean} noRemove 不一致时是否移除快照. 界面点击时不移除, 运行链时移除
-   * @param {Boolean} clickToShow 是否需要再点击一次确认才弹出多文件diff
-   * @returns 
-   */
-  async function checkSource(indexes, noRemove = false, clickToShow = true) {
-    if (fg.config?.Snapshot?.noCheckSource) return
-    // let diff = {}
-    // 不一致时为 true
-    let failCheck = await Promise.all(indexes.map(async index => {
-      let ctx = fg.record[index]
-      // 记录不存在 或者 记录内无源码 或者 快照不存在时 无视
-      if (!ctx || !ctx.content || !ctx.snapshot) return false
-      let content = await fs.promises.readFile(path.join(rootPath, ctx.filename), { encoding: 'utf8' })
-      if (ctx.content != content) {
-        // diff[index] = content
-        return true
-      } else {
-        return false
-      }
-    }))
-    if (!noRemove) {
-      // 待移除快照的indexes
-      let toRemove = indexes.filter((v, i) => failCheck[i])
-      while (toRemove.length) {
-        fg.findNodeForward(toRemove.shift(), (v, lines) => {
-          // 只接受next->previous的线
-          if (lines.filter(l => l.lsname == 'next' && l.lename == 'previous').length == 0) {
-            return false
-          }
-          return true
-        }).map(v => fg.nodes.indexOf(v)).forEach(ii => {
-          delete fg.record[ii]?.snapshot
-          if (toRemove.includes(ii)) {
-            toRemove.splice(toRemove.indexOf(ii), 1)
-          }
-        })
-      }
-    }
-
-    if (fg.config?.Snapshot?.noShowCheckSourceDiff) return
-    let toShow = indexes.filter((v, i) => failCheck[i])
-    if (toShow.length == 0) return
-    // let textA = []
-    // let textB = []
-    // toShow.forEach(index => {
-    //   let ctx = fg.record[index]
-    //   textA.push('#%% ' + ctx.filename + '\n')
-    //   textB.push('#%% ' + ctx.filename + '\n')
-    //   textA.push(ctx.content)
-    //   textB.push(diff[index])
-    //   textA.push('\n')
-    //   textB.push('\n')
-    // })
-    // await showTextDiff(textA.join('\n'), textB.join('\n'), '和快照变更比较');
-
-    if (clickToShow) {
-      // 此处需要非阻塞, 弹个消息挂着就行, 不用await
-      let toShowCache = toShow.map(index => [fg.record[index].filename, fg.record[index].content]) // 此处需要捕获这个变量
-      vscode.window.showInformationMessage(
-        toShow.length + ' 个文件发生变动',
-        '查看'
-      ).then(result => {
-        if (result === '查看') {
-          showFilesDiff(toShowCache, '和运行前快照变更比较')
-        }
-      })
-    } else {
-      await showFilesDiff(toShow.map(index => [fg.record[index].filename, fg.record[index].content]), '和快照变更比较')
-    }
-
-  }
-
   /** @type {vscode.Terminal | undefined} */
   let terminal = undefined;
   function runTerminal(message) {
@@ -668,236 +137,6 @@ function activate(context) {
     });
     terminal.show();
     terminal.sendText(message);
-  }
-
-  async function runChain(targetIndex, clearIpynb, restartKernel) {
-    // 先对终点是目标点且看有效点的大图做层级拓扑排序(全局只做一次)
-    // 对终点是目标点且不看有效点的小图做层级拓扑排序(每跑一个点一次)
-    // 看第一层的a_i, 分别计算其后继的反馈指向的大图的点, 且大图中的该点是a_i的先驱, 大图中的点的序构成的组合
-    // 取所有a_i中组合最小的, 组合相等时选大图中序靠后的点
-
-    fg.mode.restartKernel = restartKernel
-    fg.mode.clearIpynb = clearIpynb
-
-    record.drop = []
-    record.concat = {}
-
-    let preorpostfunc = (index, func) => func(index, (v, lines) => {
-      // 只接受next->previous的线
-      if (lines.filter(l => l.lsname == 'next' && l.lename == 'previous').length == 0) {
-        return false
-      }
-      return true
-    }).map(v => fg.nodes.indexOf(v))
-    let prefunc = (index) => preorpostfunc(index, fg.findNodeBackward)
-    let postfunc = (index) => preorpostfunc(index, fg.findNodeForward)
-
-    let { ring, levels: glevels } = levelTopologicalSort(fg.nodes, prefunc(targetIndex))
-    if (ring) {
-      return showText('图包含环, 无法执行此功能')
-    }
-    let gorder = glevels.reduce((a, b) => a.concat(b))
-
-    await checkSource(gorder, false, true)
-
-    let torun = fg.findNodeBackward(targetIndex, (v, lines) => {
-      let index = fg.nodes.indexOf(v)
-      // 只接受next->previous的线
-      if (lines.filter(l => l.lsname == 'next' && l.lename == 'previous').length == 0) {
-        return false
-      }
-      // 未设置快照 或 快照不存在
-      return !v.snapshot || !(fg.record[index] && fg.record[index].snapshot)
-    }).map(v => fg.nodes.indexOf(v))
-
-    function getnext(torun, gorder) {
-      let { levels } = levelTopologicalSort(fg.nodes, torun)
-      if (levels[0].length == 1) {
-        return levels[0][0]
-      }
-      let value = levels[0].map(index => {
-        let pre = prefunc(index).filter(v => gorder.includes(v))
-        let post = postfunc(index).filter(v => gorder.includes(v))
-        let v = []
-        post.forEach(lsindex => {
-          pre.forEach(leindex => {
-            if (fg.link[lsindex][leindex].filter(l => l.lsname == 'drop' && l.lename == 'previous').length > 0) {
-              v.push(leindex)
-            }
-          })
-        })
-        v.push(999999 - gorder.indexOf(index))
-        v.sort()
-        return { v, index }
-      })
-      value.sort((a, b) => {
-        let ar = Array.from(a.v)
-        let br = Array.from(b.v)
-        while (1) {
-          let r = ar.shift() - br.shift()
-          if (r != 0) return r
-        }
-      })
-      return value[0].index
-    }
-
-    async function buildandrun(index, display) {
-      let ret = await fg.runNodes([index], display)
-      if (ret.error) {
-        vscode.window.showErrorMessage('运行期间出现错误')
-        throw new Error(ret.error)
-      }
-      if (ret.drop && ret.maxCount && ret.drop >= ~~ret.maxCount) {
-        vscode.window.showErrorMessage('反馈失败次数达到设定的上限')
-        throw new Error("drop max count")
-      }
-      return ret.dropid
-    }
-
-    let display = []
-    while (torun.length) {
-      let index = getnext(torun, gorder)
-      let fail = await buildandrun(index, display)
-      if (fail != null) {
-        // 把fail以及后继全部无效, 在gorder内的加进torun
-        postfunc(fail).forEach(index => {
-          // // if (fg.record[index] && fg.record[index].snapshot) delete fg.record[index].snapshot // 在run单任务时已经执行过了
-          if (gorder.includes(index) && !torun.includes(index)) torun.push(index)
-        })
-      } else {
-        torun.splice(torun.indexOf(index), 1)
-      }
-    }
-    fg.mode.restartKernel = undefined
-    fg.mode.clearIpynb = undefined
-    vscode.window.showInformationMessage('运行链完成')
-  }
-
-  async function runFiles(files, display) {
-    if (display == null) display = []
-    function setRunTick(ctx) {
-      ctx.runTick = new Date().getTime()
-      display.push(ctx.runTick + ': running...')
-    }
-    function setDoneTick(ctx, text, error = null) {
-      ctx.doneTick = new Date().getTime()
-      if (error != null) {
-        ctx.error = error.stack
-        display.push(ctx.doneTick + ': ' + error.stack)
-      } else {
-        ctx.output = text
-        display.push(ctx.doneTick + ': ' + text)
-        if (ctx.snapshotid in fg.record && fg.record[ctx.snapshotid].snapshot) {
-          ctx.snapshot = fg.record[ctx.snapshotid].snapshot
-        } else {
-          ctx.snapshot = 100000 + ~~(Math.random() * 100000000)
-        }
-      }
-      currentPanel.webview.postMessage({ command: 'result', content: ctx });
-      record.history.push(ctx)
-      fg.record[ctx.index] = ctx
-    }
-    let ctx = {};
-    try {
-      for (const file of files) {
-
-        let { rid, rconfig, filename } = file
-        ctx = Object.assign({}, file)
-        display.push(JSON.stringify(file, null, 4))
-        setRunTick(ctx)
-        await showText(display.join('\n\n'))
-
-        if (ctx.condition) {
-          fs.writeFileSync(path.join(rootPath, ctx.condition), '', { encoding: 'utf8' })
-        }
-
-        let fullname = path.join(rootPath, filename)
-        let content = fs.readFileSync(fullname, { encoding: 'utf8' })
-        ctx.content = content
-
-        function buildPayload(text) {
-          let func = new Function('filename', 'fullname', 'content', text)
-          return func(filename, fullname, content)
-        }
-
-        if (rconfig.type === 'vscode-terminal') {
-          let message = rconfig.message.replaceAll('__filename__', filename).replaceAll('__fullname__', fullname).replaceAll('__content__', content)
-          runTerminal(message)
-        }
-        if (rconfig.type === 'node-terminal') {
-          let payload = buildPayload(rconfig.payload)
-          const result = spawnSync(payload[0], payload.slice(1), { encoding: 'utf8', cwd: rootPath });
-          // display.push(JSON.stringify(result))
-          if (result.status === 0) {
-            setDoneTick(ctx, result.stdout.toString())
-          } else {
-            throw new Error(result.stderr.toString());
-          }
-        }
-        if (rconfig.type === 'node-post') {
-          let payload = buildPayload(rconfig.payload)
-          let ret = await post(
-            rconfig.url,
-            payload,
-          );
-          setDoneTick(ctx, new Function('ret', rconfig.show)(ret))
-        }
-        if (rconfig.type === 'concat') {
-          let targetPath = path.join(rootPath, rconfig.filename)
-          if (targetPath in record?.concat) {
-            fs.writeFileSync(targetPath, content + '\n', { encoding: 'utf8', flag: 'a' })
-            record.concat[targetPath] += 1
-          } else {
-            record.concat = record.concat || {}
-            fs.writeFileSync(targetPath, content + '\n', { encoding: 'utf8' })
-            record.concat[targetPath] = 1
-          }
-          setDoneTick(ctx, 'write to ' + rconfig.filename)
-        }
-        if (rconfig.type === 'vscode-jupyter') {
-          let targetPath = path.join(rootPath, rconfig.filename)
-          if (!fs.existsSync(targetPath)) {
-            fs.writeFileSync(targetPath, '', { encoding: 'utf8' });
-            await delay(100)
-          }
-          const result = await runJupyter(targetPath, rid, content, fullname)
-          if (result.error) {
-            throw new Error(result.error);
-          } else {
-            setDoneTick(ctx, result.output)
-          }
-        }
-        if (ctx.condition) {
-          let conditionResult = fs.readFileSync(path.join(rootPath, ctx.condition), { encoding: 'utf8' })
-          if (conditionResult) {
-            record.drop[ctx.index] = 1 + ~~record.drop[ctx.index]
-            ctx.drop = record.drop[ctx.index]
-            fg.findNodeForward(ctx.dropid, (v, lines) => {
-              // 只接受next->previous的线
-              if (lines.filter(l => l.lsname == 'next' && l.lename == 'previous').length == 0) {
-                return false
-              }
-              return true
-            }).map(v => fg.nodes.indexOf(v)).forEach(ii => delete fg.record[ii]?.snapshot)
-            // 达到 maxcount 报错不放在此处处理
-            ctx.conditionResult = conditionResult
-            display.push('drop ' + ctx.drop + ': ' + conditionResult)
-            await showText(display.join('\n\n'))
-            saveAndPushRecord()
-            return { dropid: ctx.dropid, drop: ctx.drop, maxCount: ~~ctx.maxCount, display }
-          }
-        }
-      }
-      await showText(display.join('\n\n'))
-      saveAndPushRecord()
-      return { done: '', display }
-    } catch (error) {
-      setDoneTick(ctx, error.stack, error)
-      await showText(display.join('\n\n'))
-      saveAndPushRecord()
-      return { error, display }
-    }
-
   }
 
   function saveAndPushRecord() {
@@ -953,6 +192,57 @@ function activate(context) {
     return ret
   }
 
+  const _runners = createRunners({
+    fg,
+    getRecord: () => record,
+    getRootPath: () => rootPath,
+    showText,
+    saveAndPushRecord: () => saveAndPushRecord(),
+    postMessage: (msg) => currentPanel.webview.postMessage(msg),
+    showErrorMessage: (t, ...items) => vscode.window.showErrorMessage(t, ...items),
+    showInformationMessage: (t, ...items) => vscode.window.showInformationMessage(t, ...items),
+    runJupyterFn: (...args) => runJupyter(...args),
+    runTerminalFn: (msg) => runTerminal(msg),
+    spawnSyncFn: spawnSync,
+    postAsync: post,
+    showFilesDiff,
+    fsModule: fs,
+    pathModule: path,
+    levelTopologicalSort,
+  })
+  runFiles = _runners.runFiles
+  runChain = _runners.runChain
+  checkSource = _runners.checkSource
+
+  Object.assign(recieveMessage, createMessageHandlers({
+    fg,
+    getRecord: () => record,
+    getRootPath: () => rootPath,
+    getNodesPath: () => nodesPath,
+    getFgProject: () => fgProject,
+    postMessage: (msg) => currentPanel.webview.postMessage(msg),
+    showText,
+    getRunFiles: () => runFiles,
+    getRunChain: () => runChain,
+    getCheckSource: () => checkSource,
+    showFilesDiff,
+    saveAndPushRecord: () => saveAndPushRecord(),
+    buildReleasePayload,
+    showErrorMessage: (t, ...items) => vscode.window.showErrorMessage(t, ...items),
+    showInformationMessage: (t, ...items) => vscode.window.showInformationMessage(t, ...items),
+    showInputBox: (opts) => vscode.window.showInputBox(opts),
+    showTextDocument: (uri, opts) => vscode.window.showTextDocument(uri, opts),
+    getConfiguration: (section) => vscode.workspace.getConfiguration(section),
+    Uri: vscode.Uri,
+    ViewColumn: vscode.ViewColumn,
+    spawnSyncFn: spawnSync,
+    postAsync: post,
+    getSha1AndBase64,
+    recordDefault,
+    fsModule: fs,
+    pathModule: path,
+  }))
+
   function createNewPanel() {
     if (!loadFlowGraphAndConfig()) return;
     // Create and show panel
@@ -968,7 +258,7 @@ function activate(context) {
       }
     );
 
-    currentPanel.webview.html = getWebviewContent(currentPanel.webview.asWebviewUri(vscode.Uri.file(path.join(context.extensionPath, 'board/static'))));
+    currentPanel.webview.html = getWebviewContent(webviewContent, currentPanel.webview.asWebviewUri(vscode.Uri.file(path.join(context.extensionPath, 'board/static'))));
     // Handle messages from the webview
     currentPanel.webview.onDidReceiveMessage(
       message => {
@@ -1148,7 +438,3 @@ function activate(context) {
 
 }
 exports.activate = activate;
-
-function getWebviewContent(cdnpath) {
-  return webviewContent.replace('./static', cdnpath)
-}
